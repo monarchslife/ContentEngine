@@ -50,6 +50,8 @@ npm run offer-room          # http://localhost:3100
 
 On first run it creates three logins (Badal, Yogesh, placement cell) with random PINs and writes them to `offer-room/data/FIRST-RUN-LOGINS.txt`. Everything under `offer-room/data/` (database, recordings, logins) is git-ignored.
 
+Forgot a PIN or locked out? `npm run offer-room:pin -- badal` prints a fresh PIN (works for any login). Restart the app to clear a lockout.
+
 **Built so far**
 
 - **Part 1: the Three-Minute Test.** Badal logs in on phone or PC, agrees to recording, checks camera and mic, then answers three questions (60s introduction, 90s story, 30s curveball), each recorded in the browser and uploaded. No retakes, parts in order, Day 1 and Final draw different questions.
