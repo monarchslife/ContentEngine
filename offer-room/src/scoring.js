@@ -5,7 +5,8 @@ import path from "node:path";
 import { CLIP_DIR, getSettings } from "./db.js";
 import { TEST_LABEL } from "./assessment.js";
 import { profileState } from "./onboarding.js";
-import { DIMENSIONS, STRENGTH_STEMS, FIX_STEMS, validLevels, lowest, total, lintNote } from "./rubric.js";
+import { DIMENSIONS, DIMENSION_LABEL, STRENGTH_STEMS, FIX_STEMS, validLevels, lowest, total, lintNote } from "./rubric.js";
+import { AI_DIMENSIONS, aiEnabled, callClaude } from "./ai-score.js";
 
 const bad = (status, message) => Object.assign(new Error(message), { status });
 
@@ -16,8 +17,69 @@ const latestCoachScore = (db, studentId, test) =>
 function scoreSummary(row) {
   if (!row) return null;
   const levels = Object.fromEntries(DIMENSIONS.map((d) => [d, row[d]]));
-  return { levels, total: total(levels), weakest: row.weakest, strength: row.strength, fix: row.fix, note: row.note, scoredAt: row.created_at };
+  return {
+    levels, total: total(levels), weakest: row.weakest, strength: row.strength, fix: row.fix, note: row.note,
+    scoredAt: row.created_at, basis: row.basis ? JSON.parse(row.basis) : null,
+  };
 }
+
+// ---------------- Claude's run ----------------
+
+const latestAiRow = (db, attemptId) =>
+  db.prepare("SELECT * FROM ai_scores WHERE attempt_id = ? ORDER BY id DESC LIMIT 1").get(attemptId);
+
+export function aiSummary(db, attemptId) {
+  const r = latestAiRow(db, attemptId);
+  if (!r) return { status: aiEnabled() ? "none" : "off" };
+  return {
+    id: r.id,
+    status: r.status,
+    model: r.model,
+    result: r.result ? JSON.parse(r.result) : null,
+    error: r.error,
+    startedAt: r.created_at,
+    finishedAt: r.finished_at,
+  };
+}
+
+const running = new Set();
+
+// Starts Claude scoring in the background. Returns straight away; the coach
+// page polls aiSummary. `anthropic` lets tests pass a stand-in client.
+export function requestAiScore(db, attemptId, { force = false, anthropic } = {}) {
+  if (!anthropic && !aiEnabled()) return aiSummary(db, attemptId);
+  const a = db.prepare("SELECT status FROM attempts WHERE id = ?").get(attemptId);
+  if (!a || a.status === "in_progress") return aiSummary(db, attemptId);
+  const last = latestAiRow(db, attemptId);
+  // Without `force` it runs once per test; a failed run waits for "Ask Claude again".
+  if (running.has(attemptId) || (last && !force)) return aiSummary(db, attemptId);
+
+  const detail = attemptDetail(db, attemptId);
+  if (!detail.parts.some((p) => p.transcript?.text)) {
+    db.prepare("INSERT INTO ai_scores (attempt_id, status, error, finished_at) VALUES (?, 'skipped', ?, datetime('now'))")
+      .run(attemptId, "No transcript for any answer, so there is nothing for Claude to score. Score all five by hand.");
+    return aiSummary(db, attemptId);
+  }
+  const { lastInsertRowid } = db.prepare("INSERT INTO ai_scores (attempt_id, status) VALUES (?, 'pending')").run(attemptId);
+  const id = Number(lastInsertRowid);
+  running.add(attemptId);
+  const job = callClaude({ profile: detail.profile, parts: detail.parts }, { anthropic })
+    .then(({ result, model, usage }) => {
+      db.prepare("UPDATE ai_scores SET status = 'done', model = ?, result = ?, usage = ?, finished_at = datetime('now') WHERE id = ?")
+        .run(model, JSON.stringify(result), JSON.stringify(usage), id);
+    })
+    .catch((err) => {
+      console.error(`[claude] scoring test ${attemptId} failed:`, err.message);
+      db.prepare("UPDATE ai_scores SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?")
+        .run(String(err.message).slice(0, 300), id);
+    })
+    .finally(() => running.delete(attemptId));
+  aiJobs.set(attemptId, job);
+  return aiSummary(db, attemptId);
+}
+
+// Lets tests wait for a background run to finish.
+export const aiJobs = new Map();
 
 export function queue(db) {
   const rows = db.prepare(
@@ -70,6 +132,7 @@ export function attemptDetail(db, attemptId) {
       };
     }),
     score: scoreSummary(latestCoachScore(db, a.student_id, a.test)),
+    ai: aiSummary(db, a.id),
     studentId: a.student_id,
     roomCheck: a.room_check ? JSON.parse(a.room_check) : null,
     profile: profileState(db, a.student_id),
@@ -94,10 +157,30 @@ export function saveScore(db, attemptId, coachId, input) {
   const lint = lintNote(note);
   if (lint) throw bad(400, lint);
 
+  // Where Claude has scored, the coach may change a level only with a reason.
+  const ai = aiSummary(db, a.id);
+  const overrides = [];
+  if (ai.status === "done") {
+    for (const d of AI_DIMENSIONS) {
+      const from = ai.result[d].level;
+      if (levels[d] === from) continue;
+      const reason = String(input.reasons?.[d] || "").trim().slice(0, 300);
+      if (reason.length < 5) throw bad(400, `Say why you changed Claude's ${DIMENSION_LABEL[d]} score`);
+      const reasonLint = lintNote(reason);
+      if (reasonLint) throw bad(400, `${DIMENSION_LABEL[d]}: ${reasonLint}`);
+      overrides.push({ dimension: d, from, to: levels[d], reason });
+    }
+  }
+  const basis = {
+    ai: ai.status === "done" ? { id: ai.id, model: ai.model, levels: Object.fromEntries(AI_DIMENSIONS.map((d) => [d, ai.result[d].level])) } : null,
+    overrides,
+    presence: "coach",
+  };
+
   db.prepare(
-    `INSERT INTO scores (student_id, test, scorer, structure, proof, clarity, presence, fit, weakest, strength, fix, note, created_by)
-     VALUES (?, ?, 'coach', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(a.student_id, a.test, ...DIMENSIONS.map((d) => levels[d]), weakest, input.strength, input.fix, note || null, coachId);
+    `INSERT INTO scores (student_id, test, scorer, structure, proof, clarity, presence, fit, weakest, strength, fix, note, created_by, basis)
+     VALUES (?, ?, 'coach', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(a.student_id, a.test, ...DIMENSIONS.map((d) => levels[d]), weakest, input.strength, input.fix, note || null, coachId, JSON.stringify(basis));
   db.prepare("UPDATE attempts SET status = 'scored' WHERE id = ?").run(a.id);
   return attemptDetail(db, a.id);
 }

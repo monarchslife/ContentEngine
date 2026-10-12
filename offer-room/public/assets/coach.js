@@ -58,8 +58,12 @@ $("open-test").addEventListener("click", async (e) => {
 
 // ---------------- score one sitting ----------------
 const levels = {};
+const reasons = {}; // why the coach changed one of Claude's levels
 let weakest = null;
 let current = null;
+let pollTimer = null;
+const AI_DIMS = ["structure", "proof", "clarity", "fit"];
+const claudeLevel = (d) => (current?.ai?.status === "done" && AI_DIMS.includes(d) ? current.ai.result[d].level : null);
 
 const WHY_NO_TRANSCRIPT = {
   unsupported: "The student's browser can't transcribe.",
@@ -139,6 +143,19 @@ function profileCard(a) {
   ];
 }
 
+function claudeNote(d) {
+  const ai = current.ai;
+  if (d === "presence") return el("p", { class: "who-scores muted small" }, "You score this one, from the video.");
+  if (ai.status !== "done") return null;
+  const x = ai.result[d];
+  return el("div", { class: "claude" },
+    el("p", { class: "claude-head" },
+      el("span", { class: "pill" }, `Claude: ${x.level} · ${LEVEL_NAMES[x.level - 1]}`),
+      x.enough_evidence ? null : el("span", { class: "muted small" }, "thin evidence")),
+    x.evidence ? el("p", { class: "claude-quote small" }, `“${x.evidence}”`) : null,
+    el("p", { class: "small" }, x.reason));
+}
+
 function dimBlock(d) {
   const anchor = el("p", { class: "anchor muted small" }, "Pick 1 to 4.");
   const seg = el("div", { class: "segmented levels", role: "radiogroup", "aria-label": DIMENSION_LABEL[d] },
@@ -147,7 +164,63 @@ function dimBlock(d) {
       title: ANCHORS[d][n - 1],
       onclick: () => { levels[d] = n; refresh(); },
     }, el("b", {}, String(n)), el("span", {}, LEVEL_NAMES[n - 1]))));
-  return el("div", { class: "dim", "data-dim": d }, el("p", { class: "dim-name" }, DIMENSION_LABEL[d]), seg, anchor);
+  const why = el("div", { class: "field override", hidden: "" },
+    el("label", { for: `why-${d}` }, "Why change Claude's score? ", el("span", { class: "muted" }, "(logged)")),
+    el("textarea", { id: `why-${d}`, rows: "2", maxlength: "300", placeholder: "About the answer. e.g. The transcript missed the result he gave in Part 2." }));
+  why.querySelector("textarea").value = reasons[d] || "";
+  why.querySelector("textarea").addEventListener("input", (e) => { reasons[d] = e.target.value; refresh(); });
+  return el("div", { class: "dim", "data-dim": d }, el("p", { class: "dim-name" }, DIMENSION_LABEL[d]), claudeNote(d), seg, anchor, why);
+}
+
+function aiBanner() {
+  const ai = current.ai;
+  const again = el("button", { type: "button", class: "btn ghost small-btn", onclick: askAgain }, "Ask Claude again");
+  const box = $("ai-status");
+  box.className = `ai-status ${ai.status}`;
+  const text = {
+    off: "Claude scoring is off on this server (no API key), so score all five yourself.",
+    none: "Claude hasn't scored this test yet.",
+    pending: "Claude is scoring Structure, Proof, Clarity and Fit. Usually under a minute.",
+    done: `Claude scored Structure, Proof, Clarity and Fit${ai.result?.confidence ? ` (confidence: ${ai.result.confidence})` : ""}. You score Presence. Change any of Claude's levels if you disagree; you'll be asked why.`,
+    failed: `Claude couldn't score this test: ${ai.error || "unknown error"}. Score by hand, or ask again.`,
+    skipped: ai.error || "Claude skipped this test.",
+  }[ai.status];
+  box.replaceChildren(...[
+    el("p", {}, text),
+    ai.status === "done" && ai.result.notes_for_coach ? el("p", { class: "small" }, `Note from Claude: ${ai.result.notes_for_coach}`) : null,
+    ["done", "failed"].includes(ai.status) ? again : null,
+  ].filter(Boolean));
+}
+
+async function askAgain() {
+  const fresh = await api(`/api/coach/attempt/${current.id}/ai`, { method: "POST", json: {} });
+  applyAi(fresh);
+}
+
+// Claude's result can land while the coach is on the page: fill in only what
+// the coach hasn't touched yet.
+function applyAi(fresh) {
+  const was = current.ai.status;
+  current.ai = fresh.ai;
+  if (fresh.ai.status === "done" && was !== "done" && !current.score) {
+    for (const d of AI_DIMS) levels[d] ??= fresh.ai.result[d].level;
+    if (!$("strength").value) $("strength").value = fresh.ai.result.strength;
+    if (!$("fix").value) $("fix").value = fresh.ai.result.fix;
+  }
+  aiBanner();
+  $("dims").replaceChildren(...DIMENSIONS.map(dimBlock));
+  refresh();
+  poll();
+}
+
+function poll() {
+  clearTimeout(pollTimer);
+  if (current?.ai.status !== "pending") return;
+  const id = current.id;
+  pollTimer = setTimeout(async () => {
+    if (current?.id !== id || $("v-score").hidden) return;
+    try { applyAi(await api(`/api/coach/attempt/${id}`)); } catch { poll(); }
+  }, 4000);
 }
 
 function refresh() {
@@ -159,7 +232,12 @@ function refresh() {
       b.setAttribute("aria-checked", on);
     }
     box.querySelector(".anchor").textContent = levels[d] ? ANCHORS[d][levels[d] - 1] : "Pick 1 to 4.";
+    const changed = claudeLevel(d) != null && levels[d] != null && levels[d] !== claudeLevel(d);
+    box.querySelector(".override").hidden = !changed;
   }
+  const missingWhy = AI_DIMS.filter((d) => claudeLevel(d) != null && levels[d] != null && levels[d] !== claudeLevel(d)
+    && (reasons[d] || "").trim().length < 5);
+  const whyLint = AI_DIMS.map((d) => (levels[d] !== claudeLevel(d) ? lintNote(reasons[d] || "") : null)).find(Boolean);
   const complete = DIMENSIONS.every((d) => levels[d]);
   const t = complete ? total(levels) : null;
   $("total").textContent = t ?? "–";
@@ -183,7 +261,10 @@ function refresh() {
 
   const lint = lintNote($("note").value);
   $("note-lint").textContent = lint || "";
-  $("save").disabled = !complete || !$("strength").value || !$("fix").value || Boolean(lint);
+  $("save").disabled = !complete || !$("strength").value || !$("fix").value || Boolean(lint) || missingWhy.length > 0 || Boolean(whyLint);
+  $("save-hint").textContent = whyLint || (missingWhy.length
+    ? `Say why you changed Claude's ${missingWhy.map((d) => DIMENSION_LABEL[d]).join(" and ")} score.`
+    : complete ? "" : "Score all five, including Presence.");
 }
 
 function options(select, stems, chosen) {
@@ -198,11 +279,15 @@ async function showAttempt(id) {
   $("profile").replaceChildren(...profileCard(current));
   $("room").replaceChildren(...roomCheckBlock(current.roomCheck));
   $("answers").replaceChildren(...current.parts.map(answerBlock));
+  for (const d of DIMENSIONS) levels[d] = current.score?.levels[d] || claudeLevel(d) || null;
+  for (const d of AI_DIMS) reasons[d] = current.score?.basis?.overrides?.find((o) => o.dimension === d)?.reason || "";
   $("dims").replaceChildren(...DIMENSIONS.map(dimBlock));
-  for (const d of DIMENSIONS) levels[d] = current.score?.levels[d] || null;
   weakest = current.score?.weakest || null;
-  options($("strength"), STRENGTH_STEMS, current.score?.strength);
-  options($("fix"), FIX_STEMS, current.score?.fix);
+  const suggested = current.ai.status === "done" ? current.ai.result : {};
+  options($("strength"), STRENGTH_STEMS, current.score?.strength || suggested.strength);
+  options($("fix"), FIX_STEMS, current.score?.fix || suggested.fix);
+  aiBanner();
+  poll();
   $("note").value = current.score?.note || "";
   $("save").textContent = current.score ? "Update score" : "Save score";
   $("saved").hidden = true;
@@ -222,12 +307,13 @@ $("card").addEventListener("submit", async (e) => {
   try {
     current = await api(`/api/coach/attempt/${current.id}/score`, {
       method: "POST",
-      json: { levels, weakest, strength: $("strength").value, fix: $("fix").value, note: $("note").value },
+      json: { levels, weakest, reasons, strength: $("strength").value, fix: $("fix").value, note: $("note").value },
     });
     $("saved").textContent = `Saved: ${current.score.total}/20, weakest ${DIMENSION_LABEL[current.score.weakest]}.`;
     $("saved").hidden = false;
     $("saved").scrollIntoView({ block: "center", behavior: "smooth" });
     $("save").textContent = "Update score";
+    aiBanner();
   } catch (err) {
     $("save-error").textContent = err.message;
   }

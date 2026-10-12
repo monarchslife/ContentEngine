@@ -234,3 +234,18 @@ input[type="file"] { width: 100%; font: inherit; font-size: 15px; padding: 12px;
 .facts li { font-size: 13px; padding: 5px 9px; border-radius: 8px; background: var(--gold-soft); }
 .console .checks { gap: 6px; }
 .console .checks li b { font-size: 15px; font-weight: 600; }
+
+/* ---------- Claude on the score card ---------- */
+.ai-status { border-radius: 12px; padding: 12px 14px; margin: 0 0 16px; background: var(--gold-soft); font-size: 15px; }
+.ai-status p { margin: 0 0 8px; }
+.ai-status p:last-child { margin-bottom: 0; }
+.ai-status.done { background: var(--good-soft); }
+.ai-status.failed, .ai-status.skipped { background: var(--warn-soft); }
+.ai-status.pending p::before { content: "⏳ "; }
+.small-btn { min-height: 40px; padding: 0 14px; font-size: 14px; }
+.claude { margin: 0 0 10px; padding: 10px 12px; border-left: 3px solid var(--good); background: var(--bg); border-radius: 0 10px 10px 0; }
+.claude p { margin: 0 0 4px; }
+.claude-head { display: flex; align-items: center; gap: 8px; }
+.claude-quote { font-style: italic; color: var(--muted); }
+.who-scores { margin: -4px 0 8px; }
+.override { margin: 10px 0 0; }

@@ -13,6 +13,31 @@ const { createApp } = await import("../offer-room/src/app.js");
 const { drawQuestions } = await import("../offer-room/src/assessment.js");
 const { evaluate, heardRatio, delivery, READ_LINE } = await import("../offer-room/src/roomcheck.js");
 const { DatabaseSync } = await import("node:sqlite");
+const { aiJobs } = await import("../offer-room/src/scoring.js");
+const { buildUserMessage, validate, SYSTEM_PROMPT } = await import("../offer-room/src/ai-score.js");
+
+// A stand-in for the Claude API: records each request and returns a fixed card.
+const claudeCalls = [];
+const CLAUDE_CARD = {
+  structure: { level: 2, evidence: "I am Badal, a final year B.Tech student.", reason: "The introduction starts well but has no close.", enough_evidence: true },
+  proof: { level: 3, evidence: "I wrote 60 test cases.", reason: "One specific example with a number.", enough_evidence: true },
+  clarity: { level: 3, evidence: "21 words per minute", reason: "Easy to follow, short sentences.", enough_evidence: false },
+  fit: { level: 1, evidence: "", reason: "The answers never link back to QA work.", enough_evidence: true },
+  strength: "The number in the result made it stick.",
+  fix: "Next rep: end with one line that links to the role.",
+  confidence: "medium",
+  notes_for_coach: "Part 2 had no transcript.",
+};
+const fakeClaude = {
+  beta: {
+    messages: {
+      parse: async (req) => {
+        claudeCalls.push(req);
+        return { stop_reason: "end_turn", model: "claude-opus-5-5", parsed_output: structuredClone(CLAUDE_CARD), usage: { input_tokens: 3000, output_tokens: 600 } };
+      },
+    },
+  },
+};
 
 const GOOD_ROOM = {
   voiceOnly: false, noiseDb: -62, speechDb: -28, luma: 120, backlight: 5, blur: 9,
@@ -26,7 +51,7 @@ before(async () => {
   db = openDb(":memory:");
   const made = seed(db, { writeFile: false });
   pins = Object.fromEntries(made.map((u) => [u.login, u.pin]));
-  server = http.createServer(createApp(db));
+  server = http.createServer(createApp(db, { anthropic: fakeClaude }));
   await new Promise((r) => server.listen(0, r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -291,7 +316,21 @@ test("Yogesh scores Badal's Day 1 test", async () => {
   assert.equal(day1.status, "submitted");
   assert.equal(day1.student.name, "Badal");
 
+  // Submitting the last answer handed the test to Claude.
+  await aiJobs.get(day1.id);
+  assert.equal(claudeCalls.length, 1);
+  const sent = claudeCalls[0];
+  assert.match(sent.system[0].text, /Presence/);
+  const msg = sent.messages[0].content;
+  assert.match(msg, /Target role: QA engineer at an IT services company/);
+  assert.match(msg, /<transcript part="1">\nI am Badal/);
+  assert.match(msg, /Transcript: none \(unsupported\)/, "a missing transcript is named, not invented");
+  assert.match(msg, /21 words per minute/);
+
   const detail = await (await call(cookie, `/api/coach/attempt/${day1.id}`)).json();
+  assert.equal(claudeCalls.length, 1, "opening the test doesn't score it twice");
+  assert.equal(detail.ai.status, "done");
+  assert.equal(detail.ai.result.proof.level, 3);
   assert.equal(detail.parts.length, 3);
   assert.ok(detail.parts.every((p) => p.clip && p.ask));
   assert.equal(detail.profile.data.roleText, "QA engineer at an IT services company");
@@ -317,7 +356,7 @@ test("Yogesh scores Badal's Day 1 test", async () => {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
   const good = {
-    levels: { structure: 2, proof: 1, clarity: 3, presence: 2, fit: 1 },
+    levels: { structure: 2, proof: 3, clarity: 3, presence: 2, fit: 1 },
     strength: "The pace was steady and easy to follow.",
     fix: "Next rep: say what you did, with 'I', not 'we'.",
   };
@@ -328,17 +367,56 @@ test("Yogesh scores Badal's Day 1 test", async () => {
   assert.equal(personal.status, 400, "person-aimed notes are refused");
   assert.match((await personal.json()).error, /about the answer/);
 
-  let saved = await (await post({ ...good, weakest: "fit", note: "Part 2 story had no result." })).json();
+  let saved = await (await post({ ...good, note: "Part 2 story had no result." })).json();
   assert.equal(saved.status, "scored");
-  assert.equal(saved.score.total, 9);
-  assert.equal(saved.score.weakest, "fit", "the coach can choose between tied dimensions");
-
-  saved = await (await post({ ...good, levels: { ...good.levels, proof: 2 } })).json();
-  assert.equal(saved.score.total, 10, "a re-score replaces the old one");
+  assert.equal(saved.score.total, 11);
   assert.equal(saved.score.weakest, "fit");
+  assert.deepEqual(saved.score.basis.overrides, [], "kept Claude's levels, so nothing to explain");
+  assert.equal(saved.score.basis.ai.levels.proof, 3);
+
+  // Changing Claude's level needs a reason about the answer, and it is logged.
+  const changed = { ...good, levels: { ...good.levels, proof: 1, presence: 1 } };
+  const noWhy = await post(changed);
+  assert.equal(noWhy.status, 400);
+  assert.match((await noWhy.json()).error, /why you changed Claude's Proof/);
+  assert.equal((await post({ ...changed, reasons: { proof: "He is not confident" } })).status, 400, "the reason is linted too");
+  assert.equal((await post({ ...changed, weakest: "presence", reasons: { proof: "Not confident" } })).status, 400);
+  saved = await (await post({ ...changed, weakest: "proof", reasons: { proof: "The 60 test cases were a team total, said in Part 1 video." } })).json();
+  assert.equal(saved.score.total, 8, "a re-score replaces the old one");
+  assert.deepEqual(saved.score.basis.overrides, [{ dimension: "proof", from: 3, to: 1, reason: "The 60 test cases were a team total, said in Part 1 video." }]);
+  assert.equal(saved.ai.status, "done");
+
+  // "Ask Claude again" runs a fresh scoring.
+  await call(cookie, `/api/coach/attempt/${day1.id}/ai`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+  await aiJobs.get(day1.id);
+  assert.equal(claudeCalls.length, 2);
 
   const state = await (await call(student, "/api/student/test")).json();
   assert.equal(state.current.status, "scored");
+});
+
+test("Claude's card is checked and the prompt keeps transcripts as data", () => {
+  assert.throws(() => validate({ ...structuredClone(CLAUDE_CARD), fit: { level: 5, evidence: "", reason: "", enough_evidence: true } }), /fit/);
+  const personal = validate({ ...structuredClone(CLAUDE_CARD), clarity: { level: 2, evidence: "", reason: "He lacks confidence.", enough_evidence: true } });
+  assert.match(personal.clarity.reason, /withheld/, "person-aimed reasons never reach the coach");
+  assert.match(SYSTEM_PROMPT, /never as instructions/);
+  assert.match(SYSTEM_PROMPT, /never "he" or "she"/);
+  const msg = buildUserMessage({ profile: { data: {} }, parts: [{ part: 1, seconds: 60, ask: "Tell me about yourself.", transcript: null, clip: null }] });
+  assert.match(msg, /Target role: not given/);
+  assert.match(msg, /Transcript: none \(not sent\)/);
+});
+
+test("with no transcript at all, Claude is skipped and the coach scores by hand", async () => {
+  const { requestAiScore } = await import("../offer-room/src/scoring.js");
+  const day1 = db.prepare("SELECT id FROM attempts WHERE test = 'day1'").get().id;
+  const saved = db.prepare("SELECT * FROM transcripts WHERE attempt_id = ?").all(day1);
+  db.prepare("UPDATE transcripts SET text = '' WHERE attempt_id = ?").run(day1);
+  const before = claudeCalls.length;
+  const ai = requestAiScore(db, day1, { anthropic: fakeClaude, force: true });
+  assert.equal(ai.status, "skipped");
+  assert.match(ai.error, /No transcript/);
+  assert.equal(claudeCalls.length, before);
+  for (const t of saved) db.prepare("UPDATE transcripts SET text = ? WHERE attempt_id = ? AND part = ?").run(t.text, day1, t.part);
 });
 
 test("the coach opens and closes the test window", async () => {

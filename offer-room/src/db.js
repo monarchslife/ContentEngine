@@ -121,6 +121,18 @@ CREATE TABLE IF NOT EXISTS transcripts (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (attempt_id, part)
 );
+-- Claude's scores for Structure, Proof, Clarity and Fit, one row per run.
+CREATE TABLE IF NOT EXISTS ai_scores (
+  id INTEGER PRIMARY KEY,
+  attempt_id INTEGER NOT NULL REFERENCES attempts(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK (status IN ('pending','done','failed','skipped')),
+  model TEXT,
+  result TEXT,
+  error TEXT,
+  usage TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  finished_at TEXT
+);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `;
 
@@ -163,6 +175,8 @@ export function openDb(file = process.env.OFFER_ROOM_DB || DEFAULT_PATH) {
 // changes an existing table, so older databases get them here.
 const ADDED_COLUMNS = {
   attempts: { room_check: "TEXT", room_tries: "INTEGER NOT NULL DEFAULT 0", sitting_hash: "TEXT" },
+  // What a coach score was built on: Claude's run, and any levels the coach changed (with the reason).
+  scores: { basis: "TEXT" },
 };
 
 function migrate(db) {

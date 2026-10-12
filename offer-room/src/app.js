@@ -3,7 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { ROOT, verifyPin } from "./db.js";
 import { testState, startTest, saveClip, saveRoomCheck, saveTranscript, MAX_CLIP_BYTES } from "./assessment.js";
-import { queue, attemptDetail, saveScore, setOpenTest, streamClip } from "./scoring.js";
+import { queue, attemptDetail, saveScore, setOpenTest, streamClip, requestAiScore } from "./scoring.js";
 import { profileState, saveProfile, saveResume, completeProfile, resumeFile } from "./onboarding.js";
 import { MAX_RESUME_BYTES } from "./profile.js";
 
@@ -83,7 +83,8 @@ function sessionCookie(token, req, maxAge) {
   return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? "; Secure" : ""}`;
 }
 
-export function createApp(db) {
+// `anthropic` lets tests pass a stand-in Claude client.
+export function createApp(db, { anthropic } = {}) {
   // Five wrong PINs locks a login for 10 minutes.
   const attempts = new Map();
 
@@ -203,13 +204,19 @@ export function createApp(db) {
             // A custom header cannot be sent by a cross-site form, so this blocks CSRF uploads.
             if (req.headers["x-offer-room"] !== "1") return send(res, 403, { error: "Forbidden" });
             const body = await readRaw(req, MAX_CLIP_BYTES);
-            return send(res, 200, saveClip(db, user.id, {
+            const state = saveClip(db, user.id, {
               part: Number(part[1]),
               mime: req.headers["content-type"],
               body,
               durationMs: Number(req.headers["x-duration-ms"]),
               sitting: req.headers["x-sitting"],
-            }));
+            });
+            // The last answer closes the test: hand it to Claude straight away.
+            if (state.current?.status === "submitted") {
+              const done = db.prepare("SELECT id FROM attempts WHERE student_id = ? AND test = ?").get(user.id, state.current.test);
+              requestAiScore(db, done.id, { anthropic });
+            }
+            return send(res, 200, state);
           }
         }
         if (p.startsWith("/api/coach/")) {
@@ -220,7 +227,15 @@ export function createApp(db) {
             return send(res, 200, setOpenTest(db, test ?? null));
           }
           const one = p.match(/^\/api\/coach\/attempt\/(\d+)$/);
-          if (req.method === "GET" && one) return send(res, 200, attemptDetail(db, Number(one[1])));
+          if (req.method === "GET" && one) {
+            requestAiScore(db, Number(one[1]), { anthropic }); // no-op unless it never ran or failed
+            return send(res, 200, attemptDetail(db, Number(one[1])));
+          }
+          const rerun = p.match(/^\/api\/coach\/attempt\/(\d+)\/ai$/);
+          if (req.method === "POST" && rerun) {
+            requestAiScore(db, Number(rerun[1]), { anthropic, force: true });
+            return send(res, 200, attemptDetail(db, Number(rerun[1])));
+          }
           const score = p.match(/^\/api\/coach\/attempt\/(\d+)\/score$/);
           if (req.method === "POST" && score) {
             return send(res, 200, saveScore(db, Number(score[1]), user.id, await readJson(req)));
