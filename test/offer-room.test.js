@@ -11,6 +11,14 @@ process.env.OFFER_ROOM_RESUMES = path.join(clipDir, "resumes");
 const { openDb, seed } = await import("../offer-room/src/db.js");
 const { createApp } = await import("../offer-room/src/app.js");
 const { drawQuestions } = await import("../offer-room/src/assessment.js");
+const { evaluate, heardRatio, delivery, READ_LINE } = await import("../offer-room/src/roomcheck.js");
+const { DatabaseSync } = await import("node:sqlite");
+
+const GOOD_ROOM = {
+  voiceOnly: false, noiseDb: -62, speechDb: -28, luma: 120, backlight: 5, blur: 9,
+  transcript: { supported: true, heard: READ_LINE, ratio: 1 },
+};
+const NOISY_ROOM = { ...GOOD_ROOM, noiseDb: -35 };
 
 let db, server, base, pins;
 
@@ -151,11 +159,42 @@ test("Badal takes the Day 1 test: consent, three parts in order, no retakes", as
   assert.deepEqual(state.current.questions.map((q) => q.seconds), [60, 90, 30]);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM consent_log WHERE kind = 'test_recording'").get().n, 1);
 
+  const room = (metrics, skip = false) => call(cookie, "/api/student/test/room-check", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ metrics, skip }),
+  });
+  assert.equal((await clip(cookie, 1)).status, 409, "no recording before the room check");
+  let rc = await (await room(NOISY_ROOM)).json();
+  assert.equal(rc.passed, false);
+  assert.equal(rc.canStart, false);
+  assert.equal(rc.checks.find((c) => c.key === "noise").ok, false);
+  assert.equal((await clip(cookie, 1)).status, 409, "a failed room check still blocks recording");
+  const early = await (await room(NOISY_ROOM, true)).json();
+  assert.equal(early.canStart, false, "no skipping before three tries");
+  assert.equal(early.tries, 1, "a refused skip isn't counted as a try");
+  rc = await (await room({ ...NOISY_ROOM, passed: true })).json();
+  assert.equal(rc.passed, false, "the server re-checks the numbers itself");
+  rc = await (await room(NOISY_ROOM)).json();
+  assert.equal(rc.canSkip, true, "after three failed tries the student may continue");
+  rc = await (await room(GOOD_ROOM)).json();
+  assert.equal(rc.passed, true);
+  assert.equal(rc.canStart, true);
+
+  const said = (part, body) => call(cookie, `/api/student/test/part/${part}/transcript`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  assert.equal((await said(2, { supported: true, segments: [] })).status, 409, "transcripts follow the current part");
+  assert.equal((await said(1, {
+    supported: true, durationMs: 45000,
+    segments: [{ t: 4000, text: "I am Badal, a final year B.Tech student." }, { t: 9000, text: "Um, I wrote 60 test cases." }],
+    audio: { startDelayMs: 1500, longPauses: 1, longestPauseMs: 2600, speakingMs: 30000, levelDb: -27 },
+  })).status, 200);
+
   assert.equal((await clip(cookie, 2)).status, 409, "parts go in order");
   assert.equal((await clip(cookie, 1, { header: false })).status, 403, "uploads need the custom header");
   assert.equal((await clip(cookie, 1, { type: "text/html" })).status, 415);
   assert.equal((await clip(cookie, 1)).status, 200);
   assert.equal((await clip(cookie, 1)).status, 409, "no retakes");
+  assert.equal((await said(2, { supported: false })).status, 200, "an unsupported browser still records");
   assert.equal((await clip(cookie, 2, { type: "video/mp4;codecs=avc1" })).status, 200);
   state = await (await clip(cookie, 3, { type: "audio/webm;codecs=opus" })).json();
 
@@ -166,6 +205,50 @@ test("Badal takes the Day 1 test: consent, three parts in order, no retakes", as
   assert.ok(files.every((f) => fs.existsSync(path.join(clipDir, f.file))));
   assert.equal(files[2].duration_ms, 35000, "duration is clamped to the part's limit");
   assert.equal((await clip(cookie, 3)).status, 409, "a submitted test takes no more uploads");
+
+  const t1 = db.prepare("SELECT * FROM transcripts WHERE part = 1").get();
+  assert.equal(t1.text, "I am Badal, a final year B.Tech student. Um, I wrote 60 test cases.");
+  const d1 = JSON.parse(t1.delivery);
+  assert.equal(d1.words, 15, "B.Tech counts as two words");
+  assert.equal(d1.fillers, 1);
+  assert.equal(d1.wpm, 21, "words per minute counts from the first word spoken");
+  assert.equal(d1.longPauses, 1);
+  assert.equal(db.prepare("SELECT error FROM transcripts WHERE part = 2").get().error, "unsupported");
+});
+
+test("room check rules: hard checks block, soft ones only warn", () => {
+  assert.equal(evaluate(GOOD_ROOM).passed, true);
+  assert.equal(evaluate({ ...GOOD_ROOM, luma: 30 }).passed, false, "too dark");
+  assert.equal(evaluate({ ...GOOD_ROOM, backlight: 70 }).passed, false, "light behind");
+  assert.equal(evaluate({ ...GOOD_ROOM, speechDb: -55 }).passed, false, "voice too quiet");
+  const silent = evaluate({ ...GOOD_ROOM, noiseDb: -180, speechDb: -130 });
+  assert.match(silent.checks.find((c) => c.key === "voice").fix, /muted/);
+  assert.equal(silent.checks.find((c) => c.key === "clear"), undefined, "silence against silence isn't a clear voice");
+  assert.equal(evaluate({ ...GOOD_ROOM, noiseDb: -50, speechDb: -38 }).passed, false, "voice too close to the room noise");
+  const blurry = evaluate({ ...GOOD_ROOM, blur: 1 });
+  assert.equal(blurry.passed, true, "blur only warns");
+  assert.equal(blurry.checks.find((c) => c.key === "sharp").ok, false);
+  const noWords = evaluate({ ...GOOD_ROOM, transcript: { supported: false } });
+  assert.equal(noWords.passed, true, "a browser without transcripts can still take the test");
+  assert.match(noWords.checks.find((c) => c.key === "words").fix, /Chrome/);
+  const voice = evaluate({ ...GOOD_ROOM, voiceOnly: true, luma: 0 });
+  assert.equal(voice.passed, true, "voice-only skips picture checks");
+  assert.equal(heardRatio("i am getting ready for my placement interviews"), 8 / 13);
+  assert.equal(delivery("", 30000, {}).wpm, null);
+});
+
+test("an older database gets the new columns", () => {
+  const file = path.join(clipDir, "old.db");
+  const old = new DatabaseSync(file);
+  old.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY, role TEXT NOT NULL, login TEXT NOT NULL UNIQUE, name TEXT NOT NULL, roll TEXT, dept TEXT, pin_hash TEXT NOT NULL, created_at TEXT);
+    CREATE TABLE attempts (id INTEGER PRIMARY KEY, student_id INTEGER NOT NULL, test TEXT NOT NULL, status TEXT NOT NULL, questions TEXT NOT NULL, started_at TEXT, submitted_at TEXT, UNIQUE (student_id, test));
+    INSERT INTO attempts (student_id, test, status, questions) VALUES (1, 'day1', 'submitted', '[]');`);
+  old.close();
+  const upgraded = openDb(file);
+  const cols = upgraded.prepare("PRAGMA table_info(attempts)").all().map((c) => c.name);
+  assert.ok(cols.includes("room_check") && cols.includes("room_tries"));
+  assert.equal(upgraded.prepare("SELECT room_tries FROM attempts").get().room_tries, 0, "existing rows keep working");
+  upgraded.close();
 });
 
 test("the Final draws different story and curveball questions from Day 1", async () => {
@@ -202,6 +285,11 @@ test("Yogesh scores Badal's Day 1 test", async () => {
   assert.equal(detail.parts.length, 3);
   assert.ok(detail.parts.every((p) => p.clip && p.ask));
   assert.equal(detail.profile.data.roleText, "QA engineer at an IT services company");
+  assert.equal(detail.roomCheck.passed, true);
+  assert.equal(detail.roomCheck.tries, 4);
+  assert.match(detail.parts[0].transcript.text, /60 test cases/);
+  assert.equal(detail.parts[0].transcript.delivery.wpm, 21);
+  assert.equal(detail.parts[1].transcript.error, "unsupported");
 
   // The recording streams, with byte ranges for Safari.
   const clipUrl = `/api/coach/clip/${detail.parts[0].clip.id}`;

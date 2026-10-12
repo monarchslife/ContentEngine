@@ -7,6 +7,7 @@ import crypto from "node:crypto";
 import { THREE_MINUTE_TEST } from "./content.js";
 import { CLIP_DIR, getSettings } from "./db.js";
 import { isOnboarded } from "./onboarding.js";
+import { evaluate, delivery, MAX_TRIES_BEFORE_SKIP } from "./roomcheck.js";
 
 export const TEST_LABEL = { day1: "Day 1", final: "Final" };
 export const MAX_CLIP_BYTES = 30 * 1024 * 1024;
@@ -46,6 +47,8 @@ export function testState(db, studentId) {
           test: current.test,
           status: current.status,
           partsDone: partsDone(db, current.id),
+          roomCheck: current.room_check ? JSON.parse(current.room_check) : null,
+          roomTries: current.room_tries,
           // Questions stay hidden once submitted; only the sitting itself needs them.
           questions: current.status === "in_progress" ? JSON.parse(current.questions) : null,
         }
@@ -73,6 +76,8 @@ export function saveClip(db, studentId, { part, mime, body, durationMs }) {
   const test = getSettings(db).open_test;
   const attempt = test && attemptFor(db, studentId, test);
   if (!attempt || attempt.status !== "in_progress") throw Object.assign(new Error("No test in progress"), { status: 409 });
+  const room = attempt.room_check && JSON.parse(attempt.room_check);
+  if (!room || !(room.passed || room.skipped)) throw Object.assign(new Error("Do the room check first"), { status: 409 });
   if (![1, 2, 3].includes(part)) throw Object.assign(new Error("Bad part"), { status: 400 });
   const base = String(mime || "").split(";")[0].trim().toLowerCase();
   const ext = CLIP_TYPES[base];
@@ -93,4 +98,50 @@ export function saveClip(db, studentId, { part, mime, body, durationMs }) {
     db.prepare("UPDATE attempts SET status = 'submitted', submitted_at = datetime('now') WHERE id = ?").run(attempt.id);
   }
   return testState(db, studentId);
+}
+
+const bad = (status, message) => Object.assign(new Error(message), { status });
+
+function openAttempt(db, studentId) {
+  const test = getSettings(db).open_test;
+  const attempt = test && attemptFor(db, studentId, test);
+  if (!attempt || attempt.status !== "in_progress") throw bad(409, "No test in progress");
+  return attempt;
+}
+
+// The server re-checks the numbers itself; the browser's verdict is not trusted.
+// After MAX_TRIES_BEFORE_SKIP failed tries the student may go ahead anyway,
+// and the coach sees that it was skipped.
+export function saveRoomCheck(db, studentId, { metrics, skip = false }) {
+  const attempt = openAttempt(db, studentId);
+  const result = evaluate(metrics);
+  const tries = skip ? attempt.room_tries : attempt.room_tries + 1;
+  const skipped = !result.passed && skip === true && attempt.room_tries >= MAX_TRIES_BEFORE_SKIP;
+  const record = { ...result, tries, skipped, at: new Date().toISOString() };
+  db.prepare("UPDATE attempts SET room_check = ?, room_tries = ? WHERE id = ?")
+    .run(JSON.stringify(record), tries, attempt.id);
+  return { ...record, canStart: result.passed || skipped, canSkip: tries >= MAX_TRIES_BEFORE_SKIP };
+}
+
+const cleanText = (s, max) => String(s || "").replace(/\s+/g, " ").trim().slice(0, max);
+
+// Sent just before the part's recording. Re-sending replaces it (a retry).
+export function saveTranscript(db, studentId, part, input = {}) {
+  const attempt = openAttempt(db, studentId);
+  if (part !== partsDone(db, attempt.id).length + 1) throw bad(409, "Not the current part");
+  const segments = (Array.isArray(input.segments) ? input.segments : []).slice(0, 200).map((x) => ({
+    t: Math.max(0, Math.round(Number(x?.t) || 0)),
+    text: cleanText(x?.text, 1000),
+    confidence: Number.isFinite(x?.confidence) ? Math.round(x.confidence * 100) / 100 : null,
+  })).filter((x) => x.text);
+  const text = cleanText(segments.map((x) => x.text).join(" "), 6000);
+  const durationMs = Math.max(0, Math.min(Number(input.durationMs) || 0, 120_000));
+  const engine = input.supported === true ? "webspeech" : "none";
+  const error = input.error ? cleanText(input.error, 80) : engine === "none" ? "unsupported" : null;
+  db.prepare(
+    `INSERT INTO transcripts (attempt_id, part, engine, text, segments, error, delivery) VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (attempt_id, part) DO UPDATE SET engine = excluded.engine, text = excluded.text,
+       segments = excluded.segments, error = excluded.error, delivery = excluded.delivery, created_at = datetime('now')`,
+  ).run(attempt.id, part, engine, text, JSON.stringify(segments), error, JSON.stringify(delivery(text, durationMs, input.audio || {})));
+  return { ok: true };
 }

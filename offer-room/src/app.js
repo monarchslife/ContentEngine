@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { ROOT, verifyPin } from "./db.js";
-import { testState, startTest, saveClip, MAX_CLIP_BYTES } from "./assessment.js";
+import { testState, startTest, saveClip, saveRoomCheck, saveTranscript, MAX_CLIP_BYTES } from "./assessment.js";
 import { queue, attemptDetail, saveScore, setOpenTest, streamClip } from "./scoring.js";
 import { profileState, saveProfile, saveResume, completeProfile, resumeFile } from "./onboarding.js";
 import { MAX_RESUME_BYTES } from "./profile.js";
@@ -12,6 +12,7 @@ const PUBLIC = path.join(ROOT, "public");
 const SHARED = {
   "rubric.js": path.join(ROOT, "src", "rubric.js"),
   "profile.js": path.join(ROOT, "src", "profile.js"),
+  "roomcheck.js": path.join(ROOT, "src", "roomcheck.js"),
 };
 const SESSION_DAYS = 30;
 const COOKIE = "or_sid";
@@ -190,6 +191,11 @@ export function createApp(db) {
             if (consent !== true) return send(res, 400, { error: "Recording consent is needed to take the test" });
             return send(res, 200, startTest(db, user.id));
           }
+          if (req.method === "POST" && p === "/api/student/test/room-check") {
+            return send(res, 200, saveRoomCheck(db, user.id, await readJson(req)));
+          }
+          const said = p.match(/^\/api\/student\/test\/part\/([1-3])\/transcript$/);
+          if (req.method === "POST" && said) return send(res, 200, saveTranscript(db, user.id, Number(said[1]), await readJson(req)));
           const part = p.match(/^\/api\/student\/test\/part\/([1-3])$/);
           if (req.method === "POST" && part) {
             // A custom header cannot be sent by a cross-site form, so this blocks CSRF uploads.

@@ -52,6 +52,7 @@ export function attemptDetail(db, attemptId) {
   if (!a) throw bad(404, "No such test");
   const questions = JSON.parse(a.questions);
   const clips = db.prepare("SELECT id, part, mime, bytes, duration_ms FROM clips WHERE attempt_id = ? ORDER BY part").all(a.id);
+  const said = db.prepare("SELECT * FROM transcripts WHERE attempt_id = ?").all(a.id);
   return {
     id: a.id,
     test: a.test,
@@ -61,10 +62,16 @@ export function attemptDetail(db, attemptId) {
     student: { name: a.name, roll: a.roll, dept: a.dept },
     parts: questions.map((q) => {
       const c = clips.find((x) => x.part === q.part);
-      return { ...q, clip: c ? { id: c.id, mime: c.mime, durationMs: c.duration_ms } : null };
+      const t = said.find((x) => x.part === q.part);
+      return {
+        ...q,
+        clip: c ? { id: c.id, mime: c.mime, durationMs: c.duration_ms } : null,
+        transcript: t ? { engine: t.engine, text: t.text, error: t.error, delivery: JSON.parse(t.delivery) } : null,
+      };
     }),
     score: scoreSummary(latestCoachScore(db, a.student_id, a.test)),
     studentId: a.student_id,
+    roomCheck: a.room_check ? JSON.parse(a.room_check) : null,
     profile: profileState(db, a.student_id),
   };
 }

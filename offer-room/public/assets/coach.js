@@ -61,6 +61,46 @@ const levels = {};
 let weakest = null;
 let current = null;
 
+const WHY_NO_TRANSCRIPT = {
+  unsupported: "The student's browser can't transcribe.",
+  "not-allowed": "The browser blocked the transcript.",
+  "service-not-allowed": "The browser blocked the transcript.",
+  network: "The transcript service couldn't be reached.",
+  "audio-capture": "The browser couldn't share the mic with the transcript.",
+};
+
+function deliveryFacts(d) {
+  if (!d) return null;
+  const facts = [
+    d.wpm != null && `${d.wpm} words/min`,
+    d.words ? `${d.words} words` : null,
+    d.startDelayMs != null && `started after ${(d.startDelayMs / 1000).toFixed(1)}s`,
+    d.longPauses != null && `${d.longPauses} pause${d.longPauses === 1 ? "" : "s"} over 2s`,
+    d.fillers ? `${d.fillers} filler${d.fillers === 1 ? "" : "s"}` : null,
+    d.levelDb != null && `voice ${Math.round(d.levelDb)} dB`,
+  ].filter(Boolean);
+  return facts.length ? el("ul", { class: "facts" }, ...facts.map((f) => el("li", {}, f))) : null;
+}
+
+function transcriptBlock(t) {
+  if (!t) return el("p", { class: "said missing" }, "No transcript was sent for this answer.");
+  const text = t.text
+    ? el("p", { class: "said" }, `“${t.text}”`)
+    : el("p", { class: "said missing" }, WHY_NO_TRANSCRIPT[t.error] || (t.error ? `No transcript (${t.error}).` : "Nothing was picked up."));
+  return el("div", {}, text, deliveryFacts(t.delivery));
+}
+
+function roomCheckBlock(rc) {
+  if (!rc) return [el("p", { class: "eyebrow" }, "Room check"), el("p", { class: "muted" }, "No room check on record.")];
+  const verdict = rc.passed ? "Passed" : rc.skipped ? `Did not pass; student continued after ${rc.tries} tries` : "Did not pass";
+  return [
+    el("p", { class: "eyebrow" }, "Room check"),
+    el("p", {}, el("span", { class: `pill ${rc.passed ? "good" : ""}` }, verdict)),
+    el("ul", { class: "checks" }, ...rc.checks.map((c) =>
+      el("li", { class: c.ok ? "ok" : c.hard ? "bad" : "warn" }, el("b", {}, `${c.ok ? "✓" : c.hard ? "✗" : "!"} ${c.label}`)))),
+  ];
+}
+
 function answerBlock(p) {
   const media = p.clip
     ? el(p.clip.mime.startsWith("audio") ? "audio" : "video", { controls: "", preload: "metadata", playsinline: "", src: `/api/coach/clip/${p.clip.id}` })
@@ -70,6 +110,7 @@ function answerBlock(p) {
       el("p", { class: "who" }, el("span", {}, `Part ${p.part}`), el("span", {}, `${p.seconds} seconds`)),
       el("blockquote", {}, p.ask)),
     media,
+    transcriptBlock(p.transcript),
     p.clip?.durationMs != null ? el("p", { class: "muted small" }, `Spoke for ${mmss(p.clip.durationMs)} of ${mmss(p.seconds * 1000)}`) : null);
 }
 
@@ -155,6 +196,7 @@ async function showAttempt(id) {
   $("s-title").textContent = `${current.student.name} · ${current.label} test`;
   $("s-sub").textContent = [current.student.roll, current.student.dept, current.submittedAt && `submitted ${when(current.submittedAt)}`].filter(Boolean).join(" · ");
   $("profile").replaceChildren(...profileCard(current));
+  $("room").replaceChildren(...roomCheckBlock(current.roomCheck));
   $("answers").replaceChildren(...current.parts.map(answerBlock));
   $("dims").replaceChildren(...DIMENSIONS.map(dimBlock));
   for (const d of DIMENSIONS) levels[d] = current.score?.levels[d] || null;

@@ -109,6 +109,18 @@ CREATE TABLE IF NOT EXISTS profiles (
   completed_at TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- What the browser heard during each answer, plus delivery numbers from the audio.
+CREATE TABLE IF NOT EXISTS transcripts (
+  attempt_id INTEGER NOT NULL REFERENCES attempts(id) ON DELETE CASCADE,
+  part INTEGER NOT NULL CHECK (part BETWEEN 1 AND 3),
+  engine TEXT NOT NULL,
+  text TEXT NOT NULL DEFAULT '',
+  segments TEXT NOT NULL DEFAULT '[]',
+  error TEXT,
+  delivery TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (attempt_id, part)
+);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `;
 
@@ -141,9 +153,25 @@ export function openDb(file = process.env.OFFER_ROOM_DB || DEFAULT_PATH) {
   const db = new DatabaseSync(file);
   db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
   db.exec(SCHEMA);
+  migrate(db);
   const put = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) put.run(k, v);
   return db;
+}
+
+// Columns added after the first release. CREATE TABLE IF NOT EXISTS never
+// changes an existing table, so older databases get them here.
+const ADDED_COLUMNS = {
+  attempts: { room_check: "TEXT", room_tries: "INTEGER NOT NULL DEFAULT 0" },
+};
+
+function migrate(db) {
+  for (const [table, cols] of Object.entries(ADDED_COLUMNS)) {
+    const have = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const [col, type] of Object.entries(cols)) {
+      if (!have.has(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
+    }
+  }
 }
 
 export function addUser(db, { role, login, name, roll = null, dept = null, pin = newPin() }) {

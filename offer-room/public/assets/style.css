@@ -216,3 +216,21 @@ input[type="file"] { width: 100%; font: inherit; font-size: 15px; padding: 12px;
 .actionbar.pair { display: flex; flex-direction: row-reverse; gap: 8px; }
 .actionbar.pair .btn.block { flex: 1 1 auto; width: auto; }
 .actionbar.pair #back { flex: 0 0 auto; padding: 0 20px; }
+
+/* ---------- Room check ---------- */
+.readline .line { font: 600 22px/1.4 var(--serif); margin: 0; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.checks li { display: grid; gap: 2px; padding-left: 2px; }
+.checks li.ok b { color: var(--good); }
+.checks li.bad b { color: var(--rec); }
+.checks li.warn b { color: var(--gold); }
+.tx { margin: -4px 0 12px; }
+.stage .overlay { pointer-events: none; }
+
+/* ---------- Coach: transcript and delivery ---------- */
+.said { margin: 4px 0 8px; padding: 12px 14px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font-size: 15px; }
+.said.missing { color: var(--muted); font-style: italic; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 4px; padding: 0; list-style: none; }
+.facts li { font-size: 13px; padding: 5px 9px; border-radius: 8px; background: var(--gold-soft); }
+.console .checks { gap: 6px; }
+.console .checks li b { font-size: 15px; font-weight: 600; }
