@@ -1,0 +1,7 @@
+{
+  "name": "agent-squad",
+  "version": "0.1.0",
+  "description": "Animated sidebar: each subagent gets its own cartoon mascot, its task, and a live % progress bar.",
+  "author": { "name": "yogeshpandeyat" },
+  "types": "./types/index.d.ts"
+}

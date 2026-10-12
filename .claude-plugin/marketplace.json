@@ -1,0 +1,5 @@
+{
+  "name": "contentengine-mods",
+  "owner": { "name": "yogeshpandeyat" },
+  "plugins": [{ "name": "agent-squad", "source": "./claude-mods/agent-squad" }]
+}
