@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Your Room · The Offer Room</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<main class="wrap">
+  <div class="topbar">
+    <span class="brand">Monarchs Life<b>The Offer Room</b></span>
+    <button class="link-btn" id="logout" type="button">Log out</button>
+  </div>
+
+  <h1 id="hello">Hey.</h1>
+  <p class="lede">This is your room. Nobody else sees what's in here. No ranks, no batch averages, no topper lists. Just you vs. your own Day 1.</p>
+
+  <section class="card hero" id="test-card" aria-live="polite">
+    <p class="eyebrow" id="test-eyebrow">Three-Minute Test</p>
+    <h2 id="test-title">Loading…</h2>
+    <p id="test-body" class="muted"></p>
+    <div class="actionbar" id="test-action" hidden>
+      <a class="btn gold block" id="test-go" href="/test">Take the test</a>
+    </div>
+  </section>
+
+  <section class="card" id="history" hidden>
+    <p class="eyebrow">So far</p>
+    <div id="history-rows"></div>
+  </section>
+</main>
+<script type="module" src="/assets/room.js"></script>
+</body>
+</html>

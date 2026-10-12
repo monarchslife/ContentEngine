@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>The Offer Room</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<main class="wrap">
+  <div class="topbar"><span class="brand">Monarchs Life<b>The Offer Room</b></span></div>
+  <h1>Come on in.</h1>
+  <p class="lede">Your login and PIN are on the slip from your first session.</p>
+  <form id="login" class="card" novalidate>
+    <div class="field">
+      <label for="who">Login</label>
+      <input id="who" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label for="pin">PIN</label>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
+    </div>
+    <button class="btn gold block" type="submit">Let me in</button>
+    <p class="error" id="err" role="alert"></p>
+  </form>
+  <p class="muted small">Lost your PIN? Ping Yogesh. Happens every batch, nobody's judging.</p>
+</main>
+<script type="module" src="/assets/login.js"></script>
+</body>
+</html>

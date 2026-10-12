@@ -36,3 +36,22 @@ Settings: `TITLE_MODEL` (default `claude-opus-5-5`), `TITLE_EFFORT` (default `hi
 ```bash
 npm test
 ```
+
+---
+
+# The Offer Room (test version, eyes only)
+
+Student tools for the Offer Room placement program. Being built one part at a time; the test student is **Badal**.
+
+```bash
+npm install
+npm run offer-room          # http://localhost:3100
+```
+
+On first run it creates three logins (Badal, Yogesh, placement cell) with random PINs and writes them to `offer-room/data/FIRST-RUN-LOGINS.txt`. Everything under `offer-room/data/` (database, recordings, logins) is git-ignored.
+
+**Built so far**
+
+- **Part 1: the Three-Minute Test.** Badal logs in on phone or PC, agrees to recording, checks camera and mic, then answers three questions (60s introduction, 90s story, 30s curveball), each recorded in the browser and uploaded. No retakes, parts in order, Day 1 and Final draw different questions.
+
+**Hosting notes:** needs Node 22+, HTTPS (browsers only allow camera and mic on secure pages) and a persistent disk for `offer-room/data/`. Set `NODE_ENV=production` so session cookies are marked Secure. `OFFER_ROOM_DB` and `OFFER_ROOM_CLIPS` move the database and recordings elsewhere.
