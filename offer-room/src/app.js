@@ -195,7 +195,9 @@ export function createApp(db) {
             return send(res, 200, saveRoomCheck(db, user.id, await readJson(req)));
           }
           const said = p.match(/^\/api\/student\/test\/part\/([1-3])\/transcript$/);
-          if (req.method === "POST" && said) return send(res, 200, saveTranscript(db, user.id, Number(said[1]), await readJson(req)));
+          if (req.method === "POST" && said) {
+            return send(res, 200, saveTranscript(db, user.id, Number(said[1]), await readJson(req), req.headers["x-sitting"]));
+          }
           const part = p.match(/^\/api\/student\/test\/part\/([1-3])$/);
           if (req.method === "POST" && part) {
             // A custom header cannot be sent by a cross-site form, so this blocks CSRF uploads.
@@ -206,6 +208,7 @@ export function createApp(db) {
               mime: req.headers["content-type"],
               body,
               durationMs: Number(req.headers["x-duration-ms"]),
+              sitting: req.headers["x-sitting"],
             }));
           }
         }

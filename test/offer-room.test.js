@@ -49,11 +49,13 @@ async function login(who, pin = pins[who]) {
 const call = (cookie, url, opts = {}) =>
   fetch(`${base}${url}`, { redirect: "manual", ...opts, headers: { cookie, ...(opts.headers || {}) } });
 
-const clip = (cookie, part, { type = "video/webm", bytes = 2048, header = true } = {}) =>
+let sittingToken = null; // set by the room check in the Day 1 test
+
+const clip = (cookie, part, { type = "video/webm", bytes = 2048, header = true, sitting = sittingToken } = {}) =>
   call(cookie, `/api/student/test/part/${part}`, {
     method: "POST",
     body: Buffer.alloc(bytes, 1),
-    headers: { "Content-Type": type, ...(header && { "X-Offer-Room": "1" }), "X-Duration-Ms": "42000" },
+    headers: { "Content-Type": type, ...(header && { "X-Offer-Room": "1" }), ...(sitting && { "X-Sitting": sitting }), "X-Duration-Ms": "42000" },
   });
 
 test("each role lands on its own home; wrong PINs are refused", async () => {
@@ -162,12 +164,13 @@ test("Badal takes the Day 1 test: consent, three parts in order, no retakes", as
   const room = (metrics, skip = false) => call(cookie, "/api/student/test/room-check", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ metrics, skip }),
   });
-  assert.equal((await clip(cookie, 1)).status, 409, "no recording before the room check");
+  assert.equal((await clip(cookie, 1)).status, 428, "no recording before the room check");
   let rc = await (await room(NOISY_ROOM)).json();
   assert.equal(rc.passed, false);
   assert.equal(rc.canStart, false);
   assert.equal(rc.checks.find((c) => c.key === "noise").ok, false);
-  assert.equal((await clip(cookie, 1)).status, 409, "a failed room check still blocks recording");
+  assert.equal(rc.sitting, null, "a failed check opens no sitting");
+  assert.equal((await clip(cookie, 1)).status, 428, "a failed room check still blocks recording");
   const early = await (await room(NOISY_ROOM, true)).json();
   assert.equal(early.canStart, false, "no skipping before three tries");
   assert.equal(early.tries, 1, "a refused skip isn't counted as a try");
@@ -178,10 +181,17 @@ test("Badal takes the Day 1 test: consent, three parts in order, no retakes", as
   rc = await (await room(GOOD_ROOM)).json();
   assert.equal(rc.passed, true);
   assert.equal(rc.canStart, true);
+  const oldSitting = rc.sitting;
+  // A new session (say, the page was reloaded) runs the check again; the old one stops working.
+  rc = await (await room(GOOD_ROOM)).json();
+  assert.notEqual(rc.sitting, oldSitting);
+  sittingToken = rc.sitting;
+  assert.equal((await clip(cookie, 1, { sitting: oldSitting })).status, 428, "the old session's token is dead");
 
-  const said = (part, body) => call(cookie, `/api/student/test/part/${part}/transcript`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  const said = (part, body, sitting = sittingToken) => call(cookie, `/api/student/test/part/${part}/transcript`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...(sitting && { "X-Sitting": sitting }) }, body: JSON.stringify(body),
   });
+  assert.equal((await said(1, { supported: true, segments: [] }, "made-up")).status, 428, "transcripts need the session too");
   assert.equal((await said(2, { supported: true, segments: [] })).status, 409, "transcripts follow the current part");
   assert.equal((await said(1, {
     supported: true, durationMs: 45000,
@@ -286,7 +296,7 @@ test("Yogesh scores Badal's Day 1 test", async () => {
   assert.ok(detail.parts.every((p) => p.clip && p.ask));
   assert.equal(detail.profile.data.roleText, "QA engineer at an IT services company");
   assert.equal(detail.roomCheck.passed, true);
-  assert.equal(detail.roomCheck.tries, 4);
+  assert.equal(detail.roomCheck.tries, 5);
   assert.match(detail.parts[0].transcript.text, /60 test cases/);
   assert.equal(detail.parts[0].transcript.delivery.wpm, 21);
   assert.equal(detail.parts[1].transcript.error, "unsupported");

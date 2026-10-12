@@ -24,6 +24,7 @@ let busy = false; // recording or uploading
 let pending = null; // { part, blob, durationMs, transcript } waiting to upload
 let analyser = null;
 let lastMetrics = null; // from the latest room check
+let sitting = null; // proof of this session's room check; gone on reload
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const FATAL_SR = new Set(["not-allowed", "service-not-allowed", "network", "audio-capture", "language-not-supported"]);
 
@@ -252,6 +253,7 @@ async function submitRoomCheck(metrics, skip) {
   $("rc-results").hidden = false;
   $("rc-run").disabled = false;
   if (result.canStart) {
+    sitting = result.sitting;
     $("rc-title").textContent = result.passed ? "Your room's good to go. 🎉" : "Okay, going ahead.";
     $("rc-lede").textContent = result.passed
       ? "Everything we need is working. Take a breath. The first question appears with a 5-second countdown."
@@ -273,7 +275,8 @@ $("rc-skip").addEventListener("click", () => submitRoomCheck(lastMetrics, true))
 
 $("to-question").addEventListener("click", async () => {
   try { wakeLock = await navigator.wakeLock?.request("screen"); } catch { /* optional */ }
-  ask(nextPart());
+  if (pending) upload(); // an answer recorded before the check was redone
+  else ask(nextPart());
 });
 
 // ---------------- 3. question + recording ----------------
@@ -446,14 +449,23 @@ async function upload() {
   show("s-saved");
   try {
     // The transcript goes first: the last recording closes the test.
-    await api(`/api/student/test/part/${part}/transcript`, { method: "POST", json: pending.transcript });
+    await api(`/api/student/test/part/${part}/transcript`, { method: "POST", json: pending.transcript, headers: { "X-Sitting": sitting } });
     state = await api(`/api/student/test/part/${part}`, {
       method: "POST",
       body: blob,
-      headers: { "Content-Type": blob.type, "X-Offer-Room": "1", "X-Duration-Ms": String(Math.round(durationMs)) },
+      headers: { "Content-Type": blob.type, "X-Offer-Room": "1", "X-Duration-Ms": String(Math.round(durationMs)), "X-Sitting": sitting },
     });
   } catch (e) {
-    if (e.status === 409) {
+    if (e.status === 428) {
+      // The server doesn't know this session yet: check the room, then send the kept answer.
+      $("rc-title").textContent = "Quick room check, then we'll send your answer.";
+      $("rc-run").hidden = false;
+      $("rc-run").disabled = false;
+      $("to-question").hidden = true;
+      $("rc-results").hidden = true;
+      show("s-check");
+      return;
+    } else if (e.status === 409) {
       state = await api("/api/student/test"); // already saved, e.g. a double send
     } else {
       $("saved-emoji").textContent = "📶";

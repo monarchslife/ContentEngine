@@ -162,7 +162,7 @@ export function openDb(file = process.env.OFFER_ROOM_DB || DEFAULT_PATH) {
 // Columns added after the first release. CREATE TABLE IF NOT EXISTS never
 // changes an existing table, so older databases get them here.
 const ADDED_COLUMNS = {
-  attempts: { room_check: "TEXT", room_tries: "INTEGER NOT NULL DEFAULT 0" },
+  attempts: { room_check: "TEXT", room_tries: "INTEGER NOT NULL DEFAULT 0", sitting_hash: "TEXT" },
 };
 
 function migrate(db) {

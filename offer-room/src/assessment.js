@@ -72,12 +72,11 @@ export function startTest(db, studentId) {
 }
 
 // No retakes: a part that already has a clip cannot be replaced.
-export function saveClip(db, studentId, { part, mime, body, durationMs }) {
+export function saveClip(db, studentId, { part, mime, body, durationMs, sitting }) {
   const test = getSettings(db).open_test;
   const attempt = test && attemptFor(db, studentId, test);
   if (!attempt || attempt.status !== "in_progress") throw Object.assign(new Error("No test in progress"), { status: 409 });
-  const room = attempt.room_check && JSON.parse(attempt.room_check);
-  if (!room || !(room.passed || room.skipped)) throw Object.assign(new Error("Do the room check first"), { status: 409 });
+  requireSitting(attempt, sitting);
   if (![1, 2, 3].includes(part)) throw Object.assign(new Error("Bad part"), { status: 400 });
   const base = String(mime || "").split(";")[0].trim().toLowerCase();
   const ext = CLIP_TYPES[base];
@@ -118,16 +117,30 @@ export function saveRoomCheck(db, studentId, { metrics, skip = false }) {
   const tries = skip ? attempt.room_tries : attempt.room_tries + 1;
   const skipped = !result.passed && skip === true && attempt.room_tries >= MAX_TRIES_BEFORE_SKIP;
   const record = { ...result, tries, skipped, at: new Date().toISOString() };
-  db.prepare("UPDATE attempts SET room_check = ?, room_tries = ? WHERE id = ?")
-    .run(JSON.stringify(record), tries, attempt.id);
-  return { ...record, canStart: result.passed || skipped, canSkip: tries >= MAX_TRIES_BEFORE_SKIP };
+  const canStart = result.passed || skipped;
+  // A pass opens a sitting: a token that lives only in the open page. Answers
+  // need it, so a reload or a new visit means a fresh room check, while the
+  // questions inside one sitting don't repeat it.
+  const sitting = canStart ? crypto.randomBytes(24).toString("base64url") : null;
+  db.prepare("UPDATE attempts SET room_check = ?, room_tries = ?, sitting_hash = ? WHERE id = ?")
+    .run(JSON.stringify(record), tries, sitting ? sha(sitting) : null, attempt.id);
+  return { ...record, canStart, canSkip: tries >= MAX_TRIES_BEFORE_SKIP, sitting };
+}
+
+const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
+
+function requireSitting(attempt, sitting) {
+  if (!sitting || !attempt.sitting_hash || sha(String(sitting)) !== attempt.sitting_hash) {
+    throw Object.assign(new Error("Run the room check for this session first"), { status: 428 });
+  }
 }
 
 const cleanText = (s, max) => String(s || "").replace(/\s+/g, " ").trim().slice(0, max);
 
 // Sent just before the part's recording. Re-sending replaces it (a retry).
-export function saveTranscript(db, studentId, part, input = {}) {
+export function saveTranscript(db, studentId, part, input = {}, sitting = null) {
   const attempt = openAttempt(db, studentId);
+  requireSitting(attempt, sitting);
   if (part !== partsDone(db, attempt.id).length + 1) throw bad(409, "Not the current part");
   const segments = (Array.isArray(input.segments) ? input.segments : []).slice(0, 200).map((x) => ({
     t: Math.max(0, Math.round(Number(x?.t) || 0)),
