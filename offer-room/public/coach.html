@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Coach Console · The Offer Room</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body class="console">
+<main class="wrap wide">
+  <div class="topbar">
+    <a class="brand" href="/coach">Coach console<b>The Offer Room</b></a>
+    <button class="link-btn" id="logout" type="button">Log out</button>
+  </div>
+
+  <!-- List of tests -->
+  <section id="v-list" hidden>
+    <h1>Three-Minute Tests</h1>
+    <p class="lede">Watch each sitting, score it once on the Offer Score card, and give one strength and one fix.</p>
+
+    <div class="card">
+      <p class="eyebrow">Test window</p>
+      <div class="segmented" id="open-test" role="radiogroup" aria-label="Which test students can take">
+        <button type="button" role="radio" data-test="day1">Day 1</button>
+        <button type="button" role="radio" data-test="final">Final</button>
+        <button type="button" role="radio" data-test="">Closed</button>
+      </div>
+      <p class="muted small" id="open-hint"></p>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">Waiting to be scored</p>
+      <div id="todo"></div>
+    </div>
+    <div class="card">
+      <p class="eyebrow">Scored</p>
+      <div id="done"></div>
+    </div>
+  </section>
+
+  <!-- Scoring one sitting -->
+  <section id="v-score" hidden>
+    <a class="back" href="#">← All tests</a>
+    <h1 id="s-title"></h1>
+    <p class="lede" id="s-sub"></p>
+
+    <div class="split">
+      <div id="answers"></div>
+
+      <form class="card scorecard" id="card" novalidate>
+        <p class="eyebrow">Offer Score card</p>
+        <div id="dims"></div>
+
+        <div class="total-row">
+          <div><span class="total" id="total">–</span><span class="muted"> / 20</span></div>
+          <span class="pill" id="ready-pill">Ready line 15</span>
+        </div>
+
+        <fieldset class="field" id="weak-field">
+          <legend>Weakest dimension</legend>
+          <div class="segmented" id="weak"></div>
+          <p class="muted small" id="weak-hint">Score all five to see it.</p>
+        </fieldset>
+
+        <div class="field">
+          <label for="strength">One strength (the student reads this)</label>
+          <select id="strength" required></select>
+          <p class="stem-preview" id="strength-preview" hidden></p>
+        </div>
+        <div class="field">
+          <label for="fix">One fix (the student reads this)</label>
+          <select id="fix" required></select>
+          <p class="stem-preview" id="fix-preview" hidden></p>
+        </div>
+        <div class="field">
+          <label for="note">Private note <span class="muted">(only you see this)</span></label>
+          <textarea id="note" rows="3" maxlength="500" placeholder="About the answer, not the person. e.g. Part 2 story had no result."></textarea>
+          <p class="error" id="note-lint"></p>
+        </div>
+
+        <p class="error" id="save-error" role="alert"></p>
+        <p class="saved" id="saved" role="status" hidden></p>
+        <div class="actionbar">
+          <button class="btn gold block" id="save" type="submit" disabled>Save score</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+<script type="module" src="/assets/coach.js"></script>
+</body>
+</html>

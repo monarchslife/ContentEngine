@@ -3,8 +3,11 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { ROOT, verifyPin } from "./db.js";
 import { testState, startTest, saveClip, MAX_CLIP_BYTES } from "./assessment.js";
+import { queue, attemptDetail, saveScore, setOpenTest, streamClip } from "./scoring.js";
 
 const PUBLIC = path.join(ROOT, "public");
+// Modules shared by server and browser.
+const SHARED = { "rubric.js": path.join(ROOT, "src", "rubric.js") };
 const SESSION_DAYS = 30;
 const COOKIE = "or_sid";
 const HOME = { student: "/room", coach: "/coach", management: "/dashboard" };
@@ -143,6 +146,9 @@ export function createApp(db) {
       const user = currentUser(req);
 
       if (req.method === "GET" && p.startsWith("/assets/")) return asset(res, p.slice(8));
+      if (req.method === "GET" && SHARED[p.slice(5)] && p.startsWith("/lib/")) {
+        return send(res, 200, fs.readFileSync(SHARED[p.slice(5)]), TYPES[".js"], { "Cache-Control": "no-cache" });
+      }
       if (req.method === "GET" && p === "/") return redirect(res, user ? HOME[user.role] : "/login");
       if (req.method === "GET" && p === "/login") return user ? redirect(res, HOME[user.role]) : page(res, "login.html");
       if (req.method === "POST" && (p === "/api/login" || p === "/login")) return await login(req, res);
@@ -154,7 +160,7 @@ export function createApp(db) {
       }
       if (req.method === "GET" && (p === "/coach" || p === "/dashboard")) {
         if (!user || HOME[user.role] !== p) return redirect(res, "/login");
-        return page(res, "soon.html");
+        return page(res, p === "/coach" ? "coach.html" : "soon.html");
       }
 
       if (p.startsWith("/api/")) {
@@ -180,6 +186,22 @@ export function createApp(db) {
               durationMs: Number(req.headers["x-duration-ms"]),
             }));
           }
+        }
+        if (p.startsWith("/api/coach/")) {
+          if (user.role !== "coach") return send(res, 403, { error: "Coach only" });
+          if (req.method === "GET" && p === "/api/coach/queue") return send(res, 200, queue(db));
+          if (req.method === "PUT" && p === "/api/coach/open-test") {
+            const { test } = await readJson(req);
+            return send(res, 200, setOpenTest(db, test ?? null));
+          }
+          const one = p.match(/^\/api\/coach\/attempt\/(\d+)$/);
+          if (req.method === "GET" && one) return send(res, 200, attemptDetail(db, Number(one[1])));
+          const score = p.match(/^\/api\/coach\/attempt\/(\d+)\/score$/);
+          if (req.method === "POST" && score) {
+            return send(res, 200, saveScore(db, Number(score[1]), user.id, await readJson(req)));
+          }
+          const clip = p.match(/^\/api\/coach\/clip\/(\d+)$/);
+          if (req.method === "GET" && clip) return streamClip(db, Number(clip[1]), req, res, SECURITY_HEADERS);
         }
       }
       send(res, 404, { error: "Not found" });

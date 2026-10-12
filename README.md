@@ -54,6 +54,7 @@ Forgot a PIN or locked out? `npm run offer-room:pin -- badal` prints a fresh PIN
 
 **Built so far**
 
+- **Part 2: Yogesh scores it.** Log in as `yogesh` to reach the coach console: open or close the test window (Day 1, Final, Closed), see tests waiting to be scored, play the three recorded answers next to their questions, and score once on the Offer Score card (five dimensions, 1 to 4, with the card's anchors). The total and the gap to the Ready line (15) show live; the weakest dimension is picked automatically, and when two tie, Yogesh chooses. One strength and one fix come from fixed task-language stems (the student reads these). The private note refuses wording about the person ("lacks confidence") and asks for wording about the answer. Re-scoring replaces the earlier score.
 - **Part 1: the Three-Minute Test.** Badal logs in on phone or PC, agrees to recording, checks camera and mic, then answers three questions (60s introduction, 90s story, 30s curveball), each recorded in the browser and uploaded. No retakes, parts in order, Day 1 and Final draw different questions.
 
 **Hosting notes:** needs Node 22+, HTTPS (browsers only allow camera and mic on secure pages) and a persistent disk for `offer-room/data/`. Set `NODE_ENV=production` so session cookies are marked Secure. `OFFER_ROOM_DB` and `OFFER_ROOM_CLIPS` move the database and recordings elsewhere.

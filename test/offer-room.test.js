@@ -139,3 +139,69 @@ test("drawQuestions avoids used questions when it can", () => {
   assert.equal(next[0].ask, "Tell me about yourself.", "part 1 is always the introduction");
   assert.ok(!used.slice(1).includes(next[1].ask));
 });
+
+test("Yogesh scores Badal's Day 1 test", async () => {
+  const { cookie: student } = await login("badal");
+  assert.equal((await call(student, "/api/coach/queue")).status, 403, "students can't reach the console");
+
+  const { cookie } = await login("yogesh");
+  const q = await (await call(cookie, "/api/coach/queue")).json();
+  const day1 = q.attempts.find((a) => a.test === "day1");
+  assert.equal(day1.status, "submitted");
+  assert.equal(day1.student.name, "Badal");
+
+  const detail = await (await call(cookie, `/api/coach/attempt/${day1.id}`)).json();
+  assert.equal(detail.parts.length, 3);
+  assert.ok(detail.parts.every((p) => p.clip && p.ask));
+
+  // The recording streams, with byte ranges for Safari.
+  const clipUrl = `/api/coach/clip/${detail.parts[0].clip.id}`;
+  const full = await call(cookie, clipUrl);
+  assert.equal(full.status, 200);
+  assert.equal(full.headers.get("content-type"), "video/webm");
+  assert.equal((await full.arrayBuffer()).byteLength, 2048);
+  const part = await call(cookie, clipUrl, { headers: { range: "bytes=0-99" } });
+  assert.equal(part.status, 206);
+  assert.equal(part.headers.get("content-range"), "bytes 0-99/2048");
+  assert.equal((await part.arrayBuffer()).byteLength, 100);
+  assert.equal((await call(student, clipUrl)).status, 403, "students can't fetch clips");
+
+  const post = (body) => call(cookie, `/api/coach/attempt/${day1.id}/score`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  const good = {
+    levels: { structure: 2, proof: 1, clarity: 3, presence: 2, fit: 1 },
+    strength: "The pace was steady and easy to follow.",
+    fix: "Next rep: say what you did, with 'I', not 'we'.",
+  };
+  assert.equal((await post({ ...good, levels: { ...good.levels, fit: 5 } })).status, 400, "levels are 1 to 4");
+  assert.equal((await post({ ...good, weakest: "clarity" })).status, 400, "weakest must be a lowest dimension");
+  assert.equal((await post({ ...good, strength: "Great job!" })).status, 400, "strengths come from the stems");
+  const personal = await post({ ...good, note: "He is too nervous and lacks confidence" });
+  assert.equal(personal.status, 400, "person-aimed notes are refused");
+  assert.match((await personal.json()).error, /about the answer/);
+
+  let saved = await (await post({ ...good, weakest: "fit", note: "Part 2 story had no result." })).json();
+  assert.equal(saved.status, "scored");
+  assert.equal(saved.score.total, 9);
+  assert.equal(saved.score.weakest, "fit", "the coach can choose between tied dimensions");
+
+  saved = await (await post({ ...good, levels: { ...good.levels, proof: 2 } })).json();
+  assert.equal(saved.score.total, 10, "a re-score replaces the old one");
+  assert.equal(saved.score.weakest, "fit");
+
+  const state = await (await call(student, "/api/student/test")).json();
+  assert.equal(state.current.status, "scored");
+});
+
+test("the coach opens and closes the test window", async () => {
+  const { cookie } = await login("yogesh");
+  const put = (test) => call(cookie, "/api/coach/open-test", {
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ test }),
+  });
+  assert.equal((await (await put(null)).json()).openTest, null);
+  const { cookie: student } = await login("badal");
+  assert.equal((await (await call(student, "/api/student/test")).json()).openTest, null);
+  assert.equal((await put("nonsense")).status, 400);
+  assert.equal((await (await put("day1")).json()).openTest, "day1");
+});
