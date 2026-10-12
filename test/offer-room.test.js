@@ -56,6 +56,21 @@ test("each role lands on its own home; wrong PINs are refused", async () => {
   assert.equal(bad.cookie, undefined);
 });
 
+test("a plain form post logs in too (works with JavaScript off)", async () => {
+  const post = (pin) => fetch(`${base}/login`, {
+    method: "POST", redirect: "manual",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ login: " Badal ", pin }).toString(),
+  });
+  const ok = await post(pins.badal);
+  assert.equal(ok.status, 302);
+  assert.equal(ok.headers.get("location"), "/room");
+  assert.match(ok.headers.get("set-cookie"), /or_sid=.+HttpOnly/);
+  const bad = await post("000000");
+  assert.equal(bad.headers.get("location"), "/login?e=wrong");
+  assert.equal(bad.headers.get("set-cookie"), null);
+});
+
 test("five wrong PINs lock the login", async () => {
   for (let i = 0; i < 5; i++) await login("placementcell", "1");
   const locked = await login("placementcell");

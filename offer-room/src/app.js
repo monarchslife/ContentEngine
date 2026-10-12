@@ -95,24 +95,36 @@ export function createApp(db) {
     send(res, 200, fs.readFileSync(file), type, { "Cache-Control": "no-cache" });
   }
 
+  // Accepts JSON from login.js, or a plain form post when JavaScript is off.
   async function login(req, res) {
-    const { login: who = "", pin = "" } = await readJson(req);
-    const key = String(who).trim().toLowerCase();
+    const isForm = String(req.headers["content-type"] || "").startsWith("application/x-www-form-urlencoded");
+    const input = isForm ? Object.fromEntries(new URLSearchParams((await readRaw(req, 2000)).toString())) : await readJson(req);
+    const fail = (status, error) =>
+      isForm ? redirect(res, `/login?e=${error}`) : send(res, status, { error });
+    const key = String(input.login || "").trim().toLowerCase();
+    const pin = String(input.pin || "").trim();
     const a = attempts.get(key) || { n: 0, until: 0 };
-    if (a.until > Date.now()) return send(res, 429, { error: "locked" });
+    if (a.until > Date.now()) {
+      console.log(`[login] ${key || "(blank)"}: locked out`);
+      return fail(429, "locked");
+    }
     const user = db.prepare("SELECT id, role, pin_hash FROM users WHERE login = ?").get(key);
-    if (!user || !verifyPin(String(pin), user.pin_hash)) {
+    if (!user || !verifyPin(pin, user.pin_hash)) {
       a.n += 1;
       if (a.n >= 5) Object.assign(a, { n: 0, until: Date.now() + 10 * 60_000 });
       attempts.set(key, a);
-      return send(res, 401, { error: "wrong" });
+      console.log(`[login] ${key || "(blank)"}: ${user ? "wrong PIN" : "no such login"}`);
+      return fail(401, "wrong");
     }
     attempts.delete(key);
+    console.log(`[login] ${key}: signed in`);
     const token = crypto.randomBytes(32).toString("base64url");
     db.prepare("DELETE FROM sessions WHERE expires_at <= datetime('now')").run();
     db.prepare(`INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, datetime('now', '+${SESSION_DAYS} days'))`)
       .run(sha(token), user.id);
-    send(res, 200, { home: HOME[user.role] }, undefined, { "Set-Cookie": sessionCookie(token, req, SESSION_DAYS * 86400) });
+    const cookie = { "Set-Cookie": sessionCookie(token, req, SESSION_DAYS * 86400) };
+    if (isForm) return redirect(res, HOME[user.role], cookie);
+    send(res, 200, { home: HOME[user.role] }, undefined, cookie);
   }
 
   function logout(req, res) {
@@ -130,7 +142,7 @@ export function createApp(db) {
       if (req.method === "GET" && p.startsWith("/assets/")) return asset(res, p.slice(8));
       if (req.method === "GET" && p === "/") return redirect(res, user ? HOME[user.role] : "/login");
       if (req.method === "GET" && p === "/login") return user ? redirect(res, HOME[user.role]) : page(res, "login.html");
-      if (req.method === "POST" && p === "/api/login") return await login(req, res);
+      if (req.method === "POST" && (p === "/api/login" || p === "/login")) return await login(req, res);
       if (req.method === "POST" && p === "/api/logout") return logout(req, res);
 
       if (req.method === "GET" && (p === "/room" || p === "/test")) {
