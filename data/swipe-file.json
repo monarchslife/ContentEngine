@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "version": "1.0",
+    "source_note": "Titles and view counts transcribed from supplied screenshots or conversation. Performance figures are observations, not independently verified analytics. Channel baselines and subscriber counts are unknown unless stated. Ages are relative to when the screenshots were taken.",
+    "evidence_status": "No ordinary-performing controls are in this corpus yet, so no mechanism here can be rated above 'repeated examples'."
+  },
+  "mechanisms": {
+    "counterintuitive_causality": {
+      "name": "Counterintuitive causality",
+      "definition": "An unexpected cause is assigned to a familiar outcome.",
+      "research_question": "Do unexpected explanations of familiar problems outperform straightforward advice on comparable topics?"
+    },
+    "transformation_compression": {
+      "name": "Transformation compression",
+      "definition": "A large change is presented within a striking timeframe.",
+      "research_question": "Does compressing a large transformation into a short timeframe increase curiosity, and how does the audience respond to repeated versions of a similar concept?"
+    },
+    "exclusive_method": {
+      "name": "Exclusive method",
+      "definition": "A method is framed as uniquely effective or unusually powerful.",
+      "research_question": "Does a strong claim of exclusivity outperform a neutral instructional title when the subject and audience are comparable?"
+    },
+    "unconventional_mechanism": {
+      "name": "Unconventional mechanism",
+      "definition": "The solution sounds surprising, forbidden, or contrary to expectations.",
+      "research_question": "Does the unexpected mechanism generate more interest than the outcome alone?"
+    },
+    "emotional_diagnosis": {
+      "name": "Emotional diagnosis",
+      "definition": "An internal experience receives a clear explanation or interpretation.",
+      "research_question": "Do titles that articulate an experience viewers struggle to explain earn more attention than titles that merely name the topic?"
+    },
+    "universal_desire": {
+      "name": "Universal desire",
+      "definition": "A broadly desirable outcome is promised.",
+      "research_question": "Does a socially desirable outcome outperform a topic-led title when the audience and subject matter are comparable?"
+    },
+    "social_stakes": {
+      "name": "Social stakes",
+      "definition": "Approval, rejection, respect, attraction, or status is placed at risk.",
+      "research_question": "How does framing a social behaviour around negative consequences compare with framing it around positive rewards?"
+    },
+    "named_framework": {
+      "name": "Named framework",
+      "definition": "A compact rule, system, or method gives the subject a memorable structure.",
+      "research_question": "Does naming a compact framework increase perceived usefulness, memorability, or curiosity?"
+    },
+    "belief_reversal": {
+      "name": "Belief reversal",
+      "definition": "An established assumption is challenged.",
+      "research_question": "Do titles that challenge an existing belief create stronger interest than titles that simply promise improvement?"
+    },
+    "attention_exchange": {
+      "name": "Attention exchange",
+      "definition": "A small investment is exchanged for a valuable outcome.",
+      "research_question": "Does explicitly framing the value exchange improve performance compared with promising the same outcome without specifying the return?"
+    },
+    "identity_contrast": {
+      "name": "Identity contrast",
+      "definition": "Two competing behaviours, identities, or states are placed in opposition.",
+      "research_question": "Does a contrast between two identities make an abstract improvement more concrete?"
+    }
+  },
+  "examples": [
+    { "id": "A1", "kind": "title", "title": "You Are Broke Because You Are Too Smart", "views": "100K", "age": "1 week (views measured at one week)", "creator": null, "subscribers": "~1K", "tags": ["counterintuitive_causality", "belief_reversal"], "observed": "Addresses the viewer directly; names a negative financial condition; offers a causal explanation that contradicts the usual link between intelligence and success.", "note": "The only example with a stated subscriber count. Roughly 100x views-to-subscribers, but the creator's prior baseline is unknown." },
+
+    { "id": "B1", "kind": "title", "title": "I FIXED My Whole Life In 1 Night, Learn How In 146 Seconds", "views": "1.1M", "age": "1 month", "creator": "Akshath Sharma", "subscribers": null, "tags": ["transformation_compression"], "observed": "Large personal problem; dramatic claim of resolution; compressed timeframe; explicit promise of explanation in a stated short duration." },
+    { "id": "B2", "kind": "title", "title": "I FIXED My Whole Life In 1 Night, Learn How In 79 Seconds", "views": "510K", "age": "9 months", "creator": "Akshath Sharma", "subscribers": null, "tags": ["transformation_compression"], "observed": "Same concept as B1, earlier upload.", "note": "Repeated concept from the same creator; topic, packaging, upload age and distribution are confounds." },
+    { "id": "B3", "kind": "title", "title": "I DELETED My Overthinking In 1 Night, Learn How In 153 Seconds...", "views": "250K", "age": "7 months", "creator": "Akshath Sharma", "subscribers": null, "tags": ["transformation_compression"], "observed": "Same structure applied to a narrower problem (overthinking)." },
+
+    { "id": "C1", "kind": "title", "title": "The ONLY Way To Wake Up Early Without Willpower", "views": "290K", "age": "6 months", "creator": null, "subscribers": null, "tags": ["exclusive_method"], "observed": "Desirable outcome; method claimed to have special status; an expected requirement (willpower) is removed." },
+    { "id": "C2", "kind": "title", "title": "The ONLY Way To Build Discipline That Scares Everyone (NO BULLSH*T)", "views": "240K", "age": "11 months", "creator": null, "subscribers": null, "tags": ["exclusive_method"], "observed": "Exclusivity claim; extreme framing of the result; a parenthetical promise of directness." },
+    { "id": "C3", "kind": "title", "title": "How To Level Up So Fast It Feels Like CHEATING (20+ Hours)", "views": "850K", "age": "5 months", "creator": "Daniel Barada", "subscribers": null, "tags": ["exclusive_method", "unconventional_mechanism"], "observed": "Desirable outcome; extreme speed; an unexpected comparison (cheating); long-form length stated in the title." },
+
+    { "id": "D1", "kind": "title", "title": "how to achieve anything by lying to yourself.", "views": "710K", "age": "1 year", "creator": "Daniel Barada", "subscribers": null, "tags": ["unconventional_mechanism"], "observed": "Familiar outcome (achievement) paired with a surprising, normally-negative mechanism (lying to yourself)." },
+    { "id": "D2", "kind": "title", "title": "how to achieve anything effortlessly", "views": "700K", "age": "10 months", "creator": "Daniel Barada", "subscribers": null, "tags": ["unconventional_mechanism", "universal_desire"], "observed": "Familiar outcome paired with an unusually easy-sounding mechanism." },
+
+    { "id": "E1", "kind": "title", "title": "You aren't crazy... Something isn't right with people nowadays", "views": "1.4M", "age": "5 months", "creator": "Jett Franzen", "subscribers": null, "tags": ["emotional_diagnosis"], "observed": "Validates a private feeling; names a social experience; implies an explanation is coming." },
+    { "id": "E2", "kind": "title", "title": "I've Lived More In My Head Than I've Lived In Real Life", "views": "1.2M", "age": "5 months", "creator": "Jett Franzen", "subscribers": null, "tags": ["emotional_diagnosis", "identity_contrast"], "observed": "First-person articulation of an internal experience; contrast between inner life and real life." },
+    { "id": "E3", "kind": "title", "title": "What years of extreme isolation have done to me", "views": "1.1M", "age": "6 months", "creator": "Jett Franzen", "subscribers": null, "tags": ["emotional_diagnosis"], "observed": "A recognizable condition (isolation) plus an implied account of its consequences." },
+    { "id": "E4", "kind": "title", "title": "Lust will destroy you...", "views": "680K", "age": "4 months", "creator": "Jett Franzen", "subscribers": null, "tags": ["emotional_diagnosis"], "observed": "A strong claim about the consequences of an internal drive, addressed to the viewer." },
+    { "id": "E5", "kind": "title", "title": "Trying to Get a Job in 2026 is a Humiliation Ritual", "views": "530K", "age": "7 months", "creator": "Jett Franzen", "subscribers": null, "tags": ["emotional_diagnosis"], "observed": "A shared, current social experience given a vivid emotional interpretation." },
+    { "id": "E6", "kind": "title", "title": "Your Lack of Personal Purpose Is Causing Your Romantic Obsession", "views": "450K", "age": "1 month", "creator": "Jett Franzen", "subscribers": null, "tags": ["emotional_diagnosis", "counterintuitive_causality"], "observed": "An internal struggle (romantic obsession) diagnosed with a non-obvious cause (lack of purpose)." },
+
+    { "id": "F1", "kind": "title", "title": "How to become someone everyone loves talking to", "views": "2.2M", "age": "2 months", "creator": null, "subscribers": null, "tags": ["universal_desire"], "observed": "Broad social outcome; broad audience; intensified result ('everyone loves')." },
+    { "id": "F2", "kind": "title", "title": "How to make small talk so fun, it's hard to end the conversation", "views": "1.8M", "age": "1 year", "creator": null, "subscribers": null, "tags": ["universal_desire"], "observed": "Common social task with an intensified, concrete result." },
+    { "id": "F3", "kind": "title", "title": "How to make small talk so fun, people want to keep talking to you", "views": "907K", "age": "7 days", "creator": null, "subscribers": null, "tags": ["universal_desire"], "observed": "Near-identical concept to F2; 907K at only 7 days old." },
+    { "id": "F4", "kind": "title", "title": "how to be insanely more fun to talk to", "views": "1.5M", "age": "3 months", "creator": null, "subscribers": null, "tags": ["universal_desire"], "observed": "Desirable social trait with an intensifier." },
+    { "id": "F5", "kind": "title", "title": "how to make (almost) anyone like you", "views": "1M", "age": "1 year", "creator": null, "subscribers": null, "tags": ["universal_desire"], "observed": "Broad social outcome with a credibility-preserving qualifier '(almost)'." },
+    { "id": "F6", "kind": "title", "title": "how to connect with (almost) anyone", "views": "462K", "age": "6 months", "creator": null, "subscribers": null, "tags": ["universal_desire"], "observed": "Broad social outcome with the same qualifier as F5." },
+    { "id": "F7", "kind": "title", "title": "Give me 5 minutes and I'll make you a better communicator than 90% of people", "views": "146K", "age": "1 year", "creator": null, "subscribers": null, "tags": ["universal_desire", "attention_exchange"], "observed": "Explicit small time cost exchanged for a ranked, comparative improvement." },
+
+    { "id": "G1", "kind": "title", "title": "10 habits that make people secretly lose respect for you (without you realizing it)", "views": "646K", "age": "1 month", "creator": null, "subscribers": null, "tags": ["social_stakes"], "observed": "Loss of respect at stake; hidden blind spot; implies the viewer may be doing it now." },
+    { "id": "G2", "kind": "title", "title": "10 Habits That Make People Secretly Dislike You (without you realizing it)", "views": "320K", "age": "9 months", "creator": null, "subscribers": null, "tags": ["social_stakes"], "observed": "Negative-framed social stakes plus blind spot." },
+    { "id": "G3", "kind": "title", "title": "10 habits that make anyone secretly like you", "views": "271K", "age": "2 months", "creator": null, "subscribers": null, "tags": ["social_stakes", "universal_desire"], "observed": "Positive-framed counterpart to G2." },
+    { "id": "G4", "kind": "title", "title": "How to ask questions that will make anyone like you", "views": "568K", "age": "1 year", "creator": null, "subscribers": null, "tags": ["social_stakes", "universal_desire"], "observed": "Specific behaviour (questions) tied to a social approval outcome." },
+    { "id": "G5", "kind": "title", "title": "How I got a girlfriend after fixing this one mistake (you're probably making)", "views": "157K", "age": "8 months", "creator": null, "subscribers": null, "tags": ["social_stakes"], "observed": "Attraction outcome; single hidden mistake; implication that the viewer is making it." },
+
+    { "id": "H1", "kind": "thumbnail_text", "title": "the context rule", "views": null, "age": null, "creator": null, "subscribers": null, "tags": ["named_framework"], "observed": "Thumbnail phrase, not a verified title. Full packaging and performance unverified." },
+    { "id": "H2", "kind": "thumbnail_text", "title": "3 question rule", "views": null, "age": null, "creator": null, "subscribers": null, "tags": ["named_framework"], "observed": "Thumbnail phrase, not a verified title. Full packaging and performance unverified." },
+    { "id": "H3", "kind": "thumbnail_text", "title": "the small talk rule", "views": null, "age": null, "creator": null, "subscribers": null, "tags": ["named_framework"], "observed": "Thumbnail phrase, not a verified title. Full packaging and performance unverified." },
+    { "id": "H4", "kind": "thumbnail_text", "title": "the 3-2-1 rule", "views": null, "age": null, "creator": null, "subscribers": null, "tags": ["named_framework"], "observed": "Thumbnail phrase, not a verified title. Full packaging and performance unverified." },
+    { "id": "H5", "kind": "thumbnail_text", "title": "1 sentence rule", "views": null, "age": null, "creator": null, "subscribers": null, "tags": ["named_framework"], "observed": "Thumbnail phrase, not a verified title. Full packaging and performance unverified." },
+
+    { "id": "I1", "kind": "title", "title": "Creativity isn't a gift, it's a system", "views": "1M", "age": "4 months", "creator": null, "subscribers": null, "tags": ["belief_reversal"], "observed": "An assumed natural gift is reframed as a system that can be developed." },
+    { "id": "I2", "kind": "title", "title": "Audacity Will Change Your Life.", "views": "609K", "age": "4 weeks", "creator": null, "subscribers": null, "tags": ["belief_reversal"], "observed": "A trait is elevated into a consequential proposition." },
+
+    { "id": "J1", "kind": "title", "title": "If you can give me 20 minutes of your attention, I'll give you hours back.", "views": "1M", "age": "2 years", "creator": null, "subscribers": null, "tags": ["attention_exchange"], "observed": "Specific viewer investment; disproportionate return; explicit cost-to-reward relationship." },
+
+    { "id": "K1", "kind": "title", "title": "How I trained my mind to create instead of consume", "views": "680K", "age": "8 months", "creator": null, "subscribers": null, "tags": ["identity_contrast"], "observed": "Two competing behaviours (create vs consume); personal transformation." },
+    { "id": "K2", "kind": "title", "title": "How to write like a human being, not a robot", "views": "470K", "age": "6 months", "creator": null, "subscribers": null, "tags": ["identity_contrast"], "observed": "Contrast between two identities applied to a skill." },
+    { "id": "K3", "kind": "title", "title": "How to replace doomscrolling with creative writing", "views": "810K", "age": "1 month", "creator": null, "subscribers": null, "tags": ["identity_contrast"], "observed": "Undesirable habit swapped for a desirable one; practical method implied." },
+    { "id": "K4", "kind": "title", "title": "How to turn your dopamine addiction into creative obsession", "views": "400K", "age": "7 months", "creator": null, "subscribers": null, "tags": ["identity_contrast"], "observed": "A negative state converted into a positive one with the same energy." },
+
+    { "id": "L1", "kind": "title", "title": "I Make You ADDICTED To Discipline Or You UNSUBSCRIBE", "views": "260K", "age": "1 month", "creator": null, "subscribers": null, "tags": [], "observed": "Creator-side guarantee with a stated penalty; inverts 'addiction' into a desirable trait.", "note": "Unclassified: closest provisional label would be a 'creator guarantee / dare'. Not yet a taxonomy category." },
+    { "id": "L2", "kind": "title", "title": "OUTWORK everyone by being bored", "views": "610K", "age": "9 months", "creator": null, "subscribers": null, "tags": ["unconventional_mechanism"], "observed": "Competitive outcome achieved through a normally-negative state (boredom)." },
+    { "id": "L3", "kind": "title", "title": "How to become unrecognizable in 180 days (full blueprint)", "views": "820K", "age": "1 year", "creator": null, "subscribers": null, "tags": ["transformation_compression"], "observed": "Total transformation framed within a bounded timeframe; completeness promised.", "note": "180 days is bounded, not dramatically compressed; tag is provisional." },
+    { "id": "L4", "kind": "title", "title": "a full guide to reinvent your life in 6-12 Months (20+ hours)", "views": "730K", "age": "11 months", "creator": null, "subscribers": null, "tags": ["transformation_compression"], "observed": "Life reinvention within a stated window; long-form length stated in the title.", "note": "Timeframe is a range, not compressed; tag is provisional." }
+  ]
+}

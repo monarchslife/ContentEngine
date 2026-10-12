@@ -1,0 +1,26 @@
+{
+  "name": "contentengine",
+  "version": "1.0.0",
+  "description": "YouTube breakout title creator: idea in, 3 evidence-backed titles out",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "titles": "node cli.js",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/monarchslife/ContentEngine.git"
+  },
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/monarchslife/ContentEngine/issues"
+  },
+  "homepage": "https://github.com/monarchslife/ContentEngine#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "zod": "^4.6.6"
+  },
+  "type": "module",
+  "private": true
+}

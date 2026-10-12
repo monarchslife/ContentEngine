@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout Title Lab</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --surface: #ffffff; --ink: #1b1b1a; --muted: #6b6a66; --line: #e4e2dc;
+    --accent: #c4302b; --accent-soft: #fbeceb; --good: #2f7d4f; --warn: #a86b00; --warn-soft: #fff4dc;
+    --bar: #e9e7e1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141414; --surface: #1d1d1c; --ink: #ecebe7; --muted: #9a9892; --line: #2f2f2d;
+      --accent: #ff5a52; --accent-soft: #3a1c1b; --good: #5fc48a; --warn: #f0b44c; --warn-soft: #33290f;
+      --bar: #2c2c2a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 40px 16px 80px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  form { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  label span { font-weight: 400; color: var(--muted); }
+  textarea, input { width: 100%; font: inherit; color: inherit; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  #idea { min-height: 84px; resize: vertical; }
+  details.more { margin-top: 12px; }
+  details.more summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  .field { margin-top: 12px; }
+  .row { display: flex; align-items: center; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 11px 20px;
+    background: var(--accent); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .55; cursor: progress; }
+  .status { color: var(--muted); font-size: 14px; }
+  .error { color: var(--accent); }
+
+  #out { margin-top: 32px; }
+  .prop { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; margin-bottom: 18px; }
+  .prop h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px; }
+  .prop p { margin: 0 0 10px; }
+  .prop p:last-child { margin-bottom: 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .card.primary { border: 2px solid var(--accent); }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 6px; background: var(--bar); color: var(--muted); }
+  .primary .tag.rank { background: var(--accent-soft); color: var(--accent); }
+  .title-line { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 8px; }
+  .title-line h3 { font-size: 22px; line-height: 1.3; margin: 0; flex: 1; letter-spacing: -0.01em; }
+  .copy { background: var(--bar); color: var(--ink); padding: 6px 10px; font-size: 13px; font-weight: 600; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .score { font-weight: 700; color: var(--ink); background: transparent; border: 1px solid var(--line); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .title-line h3 { font-size: 19px; } }
+  .sec h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 6px; }
+  .sec p { margin: 0 0 12px; font-size: 15px; }
+  .sec ul { margin: 0 0 12px; padding-left: 18px; font-size: 15px; }
+  .prec { list-style: none; padding: 0 !important; }
+  .prec li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; margin-bottom: 8px; }
+  .prec .num { color: var(--muted); font-size: 13px; }
+  .bars { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; font-size: 13px; margin-bottom: 12px; }
+  .bar { height: 6px; background: var(--bar); border-radius: 3px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--good); }
+  .bar i.s1 { background: var(--warn); }
+  .warnings { background: var(--warn-soft); color: var(--ink); border-radius: 12px; padding: 12px 16px; font-size: 14px; margin-bottom: 16px; }
+  .warnings strong { color: var(--warn); }
+  .foot { color: var(--muted); font-size: 13px; margin-top: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Breakout Title Lab</h1>
+  <p class="sub">Drop a video idea. Get 3 titles, each built on a different mechanism from the breakout swipe file, with the precedents behind it.</p>
+
+  <form id="form">
+    <label for="idea">Video idea</label>
+    <textarea id="idea" required placeholder="e.g. Why people who over-prepare for conversations end up sounding fake, and the 2-step fix I use"></textarea>
+    <details class="more">
+      <summary>Add detail for better titles (optional)</summary>
+      <div class="field">
+        <label for="details">What the video actually delivers <span>— the method, insight or story</span></label>
+        <textarea id="details" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label for="viewer">Intended viewer</label>
+        <input id="viewer" placeholder="e.g. introverted professionals in their 20s">
+      </div>
+    </details>
+    <div class="row">
+      <button id="go" type="submit">Create titles</button>
+      <span id="status" class="status"></span>
+    </div>
+  </form>
+
+  <div id="out"></div>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const LABELS = {
+  content_fidelity: "Content fidelity", proposition_clarity: "Clarity", viewer_relevance: "Viewer relevance",
+  curiosity_tension: "Curiosity / tension", precedent_relevance: "Precedent relevance", language_quality: "Language",
+};
+
+$("#form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const idea = $("#idea").value.trim();
+  if (!idea) return;
+  $("#go").disabled = true;
+  $("#status").className = "status";
+  $("#status").textContent = "Researching the swipe file and writing titles… (about 30–60s)";
+  $("#out").innerHTML = "";
+  try {
+    const res = await fetch("/api/titles", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idea, details: $("#details").value, viewer: $("#viewer").value }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Something went wrong");
+    $("#status").textContent = "";
+    render(data);
+  } catch (err) {
+    $("#status").className = "status error";
+    $("#status").textContent = err.message;
+  } finally {
+    $("#go").disabled = false;
+  }
+});
+
+function render(r) {
+  const warn = r.warnings.length
+    ? `<div class="warnings"><strong>Checks flagged:</strong><ul>${r.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>` : "";
+  const assumptions = r.assumptions.length
+    ? `<p><strong>Assumed:</strong> ${r.assumptions.map(esc).join(" · ")}</p>` : "";
+  $("#out").innerHTML = `
+    <div class="prop">
+      <h2>Video proposition</h2>
+      <p>${esc(r.proposition)}</p>
+      <p><strong>Viewer:</strong> ${esc(r.intended_viewer)}</p>
+      ${assumptions}
+    </div>
+    ${warn}
+    ${r.titles.map(card).join("")}
+    <div class="prop">
+      <h2>Why these three</h2>
+      <p>${esc(r.why_these_three_differ)}</p>
+      <h2>Ranking confidence</h2>
+      <p>${esc(r.ranking_confidence)}</p>
+    </div>
+    <p class="foot">Scores are a decision aid from the SOP, not a probability of going viral. View counts are as recorded in the swipe file; channel baselines are unknown unless stated. Each run is logged to logs/decisions.jsonl.</p>`;
+  document.querySelectorAll(".copy").forEach((b) =>
+    b.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(b.dataset.t); b.textContent = "Copied"; }
+      catch { b.textContent = "Copy failed"; }
+      setTimeout(() => (b.textContent = "Copy"), 1500);
+    }));
+}
+
+function card(t) {
+  const isPrimary = t.rank === 1;
+  const prec = t.precedents.length
+    ? `<ul class="prec">${t.precedents.map((p) => `
+        <li><strong>${esc(p.id)}</strong> “${esc(p.title)}”<br>
+        <span class="num">${p.kind === "thumbnail_text" ? "Thumbnail text, performance unverified" :
+          `${esc(p.views ?? "views unknown")} · ${esc(p.age ?? "age unknown")}${p.creator ? " · " + esc(p.creator) : ""}${p.subscribers ? " · " + esc(p.subscribers) + " subs" : ""}`}</span></li>`).join("")}</ul>`
+    : `<p>No precedent in the swipe file. This title tests a new hypothesis.</p>`;
+  const bars = Object.entries(t.scores).map(([k, v]) =>
+    `<span>${LABELS[k]}</span><span class="bar"><i class="s${v}" style="width:${v * 50}%"></i></span><span>${v}/2</span>`).join("");
+  return `
+  <div class="card ${isPrimary ? "primary" : ""}">
+    <span class="tag rank">${isPrimary ? "Primary title" : "Alternative " + (t.rank - 1)}</span>
+    <div class="title-line"><h3>${esc(t.title)}</h3><button class="copy" data-t="${esc(t.title)}">Copy</button></div>
+    <div class="meta">
+      <span class="tag">${esc(t.mechanism_name)}</span>
+      <span class="tag">${esc(t.evidence_level)}</span>
+      <span class="tag score">${t.total}/12 · ${esc(t.band)}</span>
+    </div>
+    <div class="grid">
+      <div class="sec">
+        <h4>Why this mechanism</h4><p>${esc(t.why_this_mechanism)}</p>
+        <h4>Precedents</h4>${prec}
+        <p>${esc(t.precedent_reasoning)}</p>
+        ${t.research_question ? `<h4>Hypothesis being tested</h4><p>${esc(t.research_question)}</p>` : ""}
+      </div>
+      <div class="sec">
+        <h4>Score</h4><div class="bars">${bars}</div>
+        <h4>Audit</h4><p>${esc(t.audit)}</p>
+        <h4>Video must deliver</h4><p>${esc(t.what_the_video_must_deliver)}</p>
+        <h4>Remaining uncertainty</h4><ul>${t.uncertainty.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>
+      </div>
+    </div>
+  </div>`;
+}
+</script>
+</body>
+</html>
