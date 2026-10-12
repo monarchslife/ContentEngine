@@ -67,7 +67,10 @@ function cookies(req) {
 }
 
 function sessionCookie(token, req, maxAge) {
-  const secure = process.env.NODE_ENV === "production" || req.headers["x-forwarded-proto"] === "https";
+  // Safari drops Secure cookies on plain-http localhost, so only mark them
+  // Secure when the request really arrived over HTTPS.
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(req.headers.host || "");
+  const secure = req.socket.encrypted || req.headers["x-forwarded-proto"] === "https" || (process.env.NODE_ENV === "production" && !local);
   return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? "; Secure" : ""}`;
 }
 
