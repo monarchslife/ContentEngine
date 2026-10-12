@@ -81,3 +81,61 @@ export function lintNote(note = "") {
     ? "This note describes the person. Rewrite it about the answer: what the answer did, and what the next rep should change."
     : null;
 }
+
+export const READY_LINE = 15;
+
+export const BANDS = [
+  { label: "5 to 9", min: 5, max: 9 },
+  { label: "10 to 12", min: 10, max: 12 },
+  { label: "13 to 14", min: 13, max: 14 },
+  { label: "15 to 20 (Ready)", min: 15, max: 20 },
+];
+
+export function band(t) {
+  return BANDS.findIndex((b) => t >= b.min && t <= b.max);
+}
+
+// ---------- What the student reads about an answer (3AM-friend voice) ----------
+// [level 1..4] -> { said: what this answer did, next: the one next rep }
+export const STUDENT_LINES = {
+  structure: [
+    { said: "This answer went on a road trip with no map. Started somewhere, ended somewhere else. Totally normal on round one.", next: "Say your point in the very first sentence. Then one example. Then land it. Point, example, close. That's the whole trick, yaar." },
+    { said: "The answer had a solid start, then lost the thread halfway. Like a voice note that forgot why it was recorded.", next: "Before you open your mouth, decide your last line. If you know where you're landing, you don't get lost on the way." },
+    { said: "Point, example, close. Clean. The listener knew where they were the whole time.", next: "Make the point so sharp someone could repeat it back in one line." },
+    { said: "This answer had a shape so clear the listener could repeat it back. That's rare. Seriously.", next: "Keep the shape, cut 10 seconds. Short and clear beats long and clear." },
+  ],
+  proof: [
+    { said: "The answer said 'hardworking' but never showed it. Interviewers hear 'hardworking' about 400 times a day. They're tired.", next: "Swap one adjective for one real thing you did. A project, a fest, a part-time job, the family shop. Anything real counts." },
+    { said: "There was an example in there, but it was blurry. Lots of 'we', not much 'I'.", next: "Say what YOU did. 'I wrote the test cases', not 'we did the project'. Your teammates aren't in the room." },
+    { said: "One real example with your actual role in it. That's what makes an interviewer lean in.", next: "Add a number. How many, how fast, how much. '60 test cases, 14 bugs' hits different." },
+    { said: "Real example, your role, a number. That's proof, not a claim. Chef's kiss.", next: "Try this same story on a different question. A good story answers three or four of them." },
+  ],
+  clarity: [
+    { said: "The words were rushing out like they had a train to catch. Or they went too quiet to hear.", next: "Short sentences. Breathe at the full stops. Slow feels weird to you and sounds great to them." },
+    { said: "The listener could follow, but had to work for it.", next: "One idea per sentence. If a sentence has an 'and' in the middle, cut it in two." },
+    { said: "Easy to follow. The pauses landed in the right places.", next: "Swap any fancy word for the simple one you'd use with a friend. Simple English scores." },
+    { said: "Easy to follow AND easy to listen to. Steady pace, simple words. That's a big deal.", next: "Do tonight's Newspaper Rep so this pace stays on autopilot." },
+  ],
+  presence: [
+    { said: "The eyes went to the floor and the answer kept saying sorry for itself. Happens to literally everyone at first.", next: "Look at the interviewer's eyebrows (works, trust me) and finish every sentence at full volume." },
+    { said: "Polite, but the answer kept hedging. 'I think maybe I kind of...' The thing you did deserves better than that.", next: "Say 'I did' instead of 'I think I helped'. Own the part you actually did." },
+    { said: "Steady eye contact, warm, owned what it said. That's how a hire sounds.", next: "Keep the same warmth on the hardest question. That's where it counts." },
+    { said: "Warm and sure, even on the tough one. That's the whole game.", next: "Keep it exactly like this on the hardest question of your next test." },
+  ],
+  fit: [
+    { said: "This answer could have been for any job on earth. The interviewer wants to hear about THIS one.", next: "Add one line that links it to the role. 'That's exactly why this role pulls me in.'" },
+    { said: "The role got a mention, but it was a quick wave from far away.", next: "Name one thing the job actually involves and connect your example to it." },
+    { said: "The answer clicked into this role. That's exactly what the Pull is for.", next: "Read the company page for five minutes and add one specific thing you saw there." },
+    { said: "Connected to the role and showed what the work actually is. Interviewers remember that.", next: "Try it on another company's question deck. Same skill, new room." },
+  ],
+};
+
+// What the placement cell is told to do for a student whose weakest
+// dimension is X. Professional voice: management reads this.
+export const RECOMMENDED_ACTION = {
+  structure: "Two timed reps on answer frames (Present, Proof, Pull; STAR) before the next drive.",
+  proof: "Complete the Story Bank: add own role and a measurable result to at least two stories.",
+  clarity: "Daily Newspaper Rep for one week; pace-and-pause drill in a trio.",
+  presence: "Two panel hot-seats with faculty; full sentences, no hedging, warm close.",
+  fit: "Attend the Drive Brief for the next company; prepare 'why this company' with three specifics.",
+};

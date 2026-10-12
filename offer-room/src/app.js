@@ -6,6 +6,7 @@ import { testState, startTest, saveClip, saveRoomCheck, saveTranscript, MAX_CLIP
 import { queue, attemptDetail, saveScore, setOpenTest, streamClip, requestAiScore } from "./scoring.js";
 import { profileState, saveProfile, saveResume, completeProfile, resumeFile } from "./onboarding.js";
 import { MAX_RESUME_BYTES } from "./profile.js";
+import { studentView, managementView, registerCsv } from "./views.js";
 
 const PUBLIC = path.join(ROOT, "public");
 // Modules shared by server and browser.
@@ -161,14 +162,20 @@ export function createApp(db, { anthropic } = {}) {
       if (req.method === "POST" && (p === "/api/login" || p === "/login")) return await login(req, res);
       if (req.method === "POST" && p === "/api/logout") return logout(req, res);
 
-      const STUDENT_PAGES = { "/room": "room.html", "/test": "test.html", "/onboarding": "onboarding.html" };
+      const STUDENT_PAGES = { "/room": "room.html", "/test": "test.html", "/onboarding": "onboarding.html", "/score": "score.html" };
       if (req.method === "GET" && STUDENT_PAGES[p]) {
         if (user?.role !== "student") return redirect(res, "/login");
         return page(res, STUDENT_PAGES[p]);
       }
-      if (req.method === "GET" && (p === "/coach" || p === "/dashboard")) {
-        if (!user || HOME[user.role] !== p) return redirect(res, "/login");
-        return page(res, p === "/coach" ? "coach.html" : "soon.html");
+      if (req.method === "GET" && p === "/coach") {
+        if (user?.role !== "coach") return redirect(res, "/login");
+        return page(res, "coach.html");
+      }
+      // The placement cell's dashboard; coaches can open it too.
+      const canSeeDashboard = user?.role === "management" || user?.role === "coach";
+      if (req.method === "GET" && p === "/dashboard") {
+        if (!canSeeDashboard) return redirect(res, "/login");
+        return page(res, "dashboard.html");
       }
 
       if (p.startsWith("/api/")) {
@@ -177,6 +184,7 @@ export function createApp(db, { anthropic } = {}) {
         if (p.startsWith("/api/student/")) {
           if (user.role !== "student") return send(res, 403, { error: "Students only" });
           if (req.method === "GET" && p === "/api/student/test") return send(res, 200, testState(db, user.id));
+          if (req.method === "GET" && p === "/api/student/score") return send(res, 200, studentView(db, user.id));
           if (req.method === "GET" && p === "/api/student/profile") return send(res, 200, profileState(db, user.id));
           if (req.method === "PUT" && p === "/api/student/profile") return send(res, 200, saveProfile(db, user.id, await readJson(req)));
           if (req.method === "POST" && p === "/api/student/profile/complete") return send(res, 200, completeProfile(db, user.id));
@@ -217,6 +225,16 @@ export function createApp(db, { anthropic } = {}) {
               requestAiScore(db, done.id, { anthropic });
             }
             return send(res, 200, state);
+          }
+        }
+        if (p.startsWith("/api/management/")) {
+          if (!canSeeDashboard) return send(res, 403, { error: "Placement cell only" });
+          if (req.method === "GET" && p === "/api/management/dashboard") return send(res, 200, managementView(db));
+          if (req.method === "GET" && p === "/api/management/register.csv") {
+            const day = new Date().toISOString().slice(0, 10);
+            return send(res, 200, registerCsv(managementView(db)), "text/csv; charset=utf-8", {
+              "Content-Disposition": `attachment; filename="offer-room-register-${day}.csv"`,
+            });
           }
         }
         if (p.startsWith("/api/coach/")) {

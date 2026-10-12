@@ -18,6 +18,7 @@ function render(me, t) {
 
   const cur = t.current;
   document.getElementById("profile-link").hidden = !t.onboarded;
+  document.getElementById("score-link").hidden = !t.history.some((h) => h.status === "scored");
   if (!t.onboarded) {
     document.getElementById("test-eyebrow").textContent = "Step 1";
     title.textContent = "First, tell us about you.";
@@ -43,8 +44,11 @@ function render(me, t) {
     title.textContent = "Done and sent. 🎉";
     body.textContent = "Yogesh is scoring your three answers. Your score lands right here when it's ready. Go eat something.";
   } else {
-    title.textContent = "Your score is in.";
-    body.textContent = "Your score page is coming in the next update.";
+    title.textContent = "Your score is in. 👀";
+    body.textContent = "No ranks, no comparisons. Just how your answers did and the one thing to work on next.";
+    go.textContent = "See my Offer Score";
+    go.href = "/score";
+    action.hidden = false;
   }
 
   if (t.history.length) {

@@ -8,13 +8,15 @@ import http from "node:http";
 const clipDir = fs.mkdtempSync(path.join(os.tmpdir(), "offer-room-clips-"));
 process.env.OFFER_ROOM_CLIPS = clipDir;
 process.env.OFFER_ROOM_RESUMES = path.join(clipDir, "resumes");
-const { openDb, seed } = await import("../offer-room/src/db.js");
+const { openDb, seed, addUser } = await import("../offer-room/src/db.js");
 const { createApp } = await import("../offer-room/src/app.js");
 const { drawQuestions } = await import("../offer-room/src/assessment.js");
 const { evaluate, heardRatio, delivery, READ_LINE } = await import("../offer-room/src/roomcheck.js");
 const { DatabaseSync } = await import("node:sqlite");
 const { aiJobs } = await import("../offer-room/src/scoring.js");
 const { buildUserMessage, validate, SYSTEM_PROMPT } = await import("../offer-room/src/ai-score.js");
+const { registerCsv } = await import("../offer-room/src/views.js");
+const { STUDENT_LINES } = await import("../offer-room/src/rubric.js");
 
 // A stand-in for the Claude API: records each request and returns a fixed card.
 const claudeCalls = [];
@@ -108,9 +110,10 @@ test("a plain form post logs in too (works with JavaScript off)", async () => {
 });
 
 test("five wrong PINs lock the login", async () => {
-  for (let i = 0; i < 5; i++) await login("placementcell", "1");
-  const locked = await login("placementcell");
-  assert.equal(locked.res.status, 429);
+  addUser(db, { role: "management", login: "lockme", name: "Lockout test", pin: "123456" });
+  for (let i = 0; i < 5; i++) await login("lockme", "1");
+  const locked = await login("lockme", "123456");
+  assert.equal(locked.res.status, 429, "even the right PIN is refused while locked");
 });
 
 test("pages and APIs are protected", async () => {
@@ -393,6 +396,64 @@ test("Yogesh scores Badal's Day 1 test", async () => {
 
   const state = await (await call(student, "/api/student/test")).json();
   assert.equal(state.current.status, "scored");
+});
+
+test("Badal sees his own score, in task language, with nothing about who scored it", async () => {
+  const { cookie } = await login("badal");
+  const view = await (await call(cookie, "/api/student/score")).json();
+  const t = view.tests.day1;
+  assert.equal(view.tests.final, undefined, "an unscored test isn't shown");
+  assert.equal(t.total, 8);
+  assert.deepEqual(t.bar, { line: 15, clears: false, gap: 7 });
+  assert.equal(t.weakest, "proof");
+  assert.equal(t.nextRep, STUDENT_LINES.proof[0].next);
+  assert.equal(t.dimensions.length, 5);
+  assert.equal(view.movement, null, "movement needs both tests");
+  const raw = JSON.stringify(view);
+  assert.ok(!("note" in t) && !("basis" in t) && !("ai" in t), "no notes, basis or Claude run in the student view");
+  for (const hidden of ["overrides", "Claude", "rank", "average", "60 test cases were a team total"]) {
+    assert.ok(!raw.includes(hidden), `the student view must not include "${hidden}"`);
+  }
+  const { cookie: coach } = await login("yogesh");
+  assert.equal((await call(coach, "/api/student/score")).status, 403);
+});
+
+test("the placement cell's dashboard: batch view, priority list, integrity, CSV", async () => {
+  const { cookie: student } = await login("badal");
+  assert.equal((await call(student, "/api/management/dashboard")).status, 403, "students can't see the dashboard");
+  assert.equal((await call(student, "/dashboard")).headers.get("location"), "/login");
+
+  const { cookie } = await login("placementcell");
+  const res = await call(cookie, "/api/management/dashboard");
+  const v = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(v));
+  assert.equal(v.headline.students, 1);
+  assert.equal(v.headline.measuredDay1, 1);
+  assert.equal(v.headline.avgDay1, 8);
+  assert.equal(v.headline.notYetReady, 1);
+  const badal = v.register[0];
+  assert.equal(badal.priority, 1);
+  assert.equal(badal.day1Status, "Scored");
+  assert.equal(badal.weakestLabel, "Proof");
+  assert.match(badal.action, /Story Bank/);
+  assert.equal(v.dimensions.find((d) => d.key === "proof").day1, 1);
+  assert.equal(v.bands[0].day1, 1, "8 of 20 sits in the 5 to 9 band");
+  assert.equal(v.integrity.testsWithClaude, 1);
+  assert.equal(v.integrity.overrides, 1);
+  assert.equal(v.integrity.byDimension.find((d) => d.key === "proof").meanShift, -2);
+  assert.ok(!JSON.stringify(v).includes("60 test cases were a team total"), "override reasons stay with the coach");
+
+  const csv = await call(cookie, "/api/management/register.csv");
+  assert.match(csv.headers.get("content-type"), /text\/csv/);
+  assert.match(await csv.text(), /^Priority,Name,Roll,Department/);
+  const { cookie: coach } = await login("yogesh");
+  assert.equal((await call(coach, "/api/management/dashboard")).status, 200, "coaches can open it too");
+});
+
+test("CSV export can't smuggle spreadsheet formulas", () => {
+  const out = registerCsv({ register: [{ priority: 1, name: "=HYPERLINK(\"x\")", roll: "+1", dept: "CSE", day1: 8, final: null, change: -2, ready: false, weakestLabel: "Proof", action: "a, b", day1Status: "Scored", finalStatus: "Not taken" }] });
+  const row = out.split("\n")[1];
+  assert.match(row, /^1,"'=HYPERLINK\(""x""\)",'\+1,CSE,8,,-2,Not yet,Proof,"a, b",Scored,Not taken$/);
 });
 
 test("Claude's card is checked and the prompt keeps transcripts as data", () => {

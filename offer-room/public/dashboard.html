@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Readiness Dashboard · The Offer Room</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body class="console mgmt">
+<main class="wrap wide">
+  <div class="topbar">
+    <span class="brand">Placement Readiness<b>The Offer Room</b></span>
+    <span class="top-actions">
+      <a class="link-btn" id="to-coach" href="/coach" hidden>Coach console</a>
+      <button class="link-btn" id="logout" type="button">Log out</button>
+    </span>
+  </div>
+
+  <header class="dash-head">
+    <div>
+      <h1 id="inst">Readiness Dashboard</h1>
+      <p class="lede" id="meta"></p>
+    </div>
+    <div class="dash-actions no-print">
+      <button class="btn ghost" id="print" type="button">Print report</button>
+      <a class="btn ghost" href="/api/management/register.csv">Download register (CSV)</a>
+    </div>
+  </header>
+  <p class="confidential">Confidential to the placement cell. Individual scores are not shared with recruiters or published.</p>
+
+  <section class="kpis" id="kpis" aria-label="Headline figures"></section>
+
+  <div class="dash-grid">
+    <section class="card">
+      <h2>Movement by dimension</h2>
+      <p class="muted small" id="dims-note"></p>
+      <div class="legend" id="dims-legend"></div>
+      <div id="dims-chart"></div>
+    </section>
+    <section class="card">
+      <h2>Score distribution</h2>
+      <p class="muted small">Students per Offer Score band. The Ready line is 15 of 20.</p>
+      <div class="legend" id="bands-legend"></div>
+      <div id="bands-chart"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="section-head">
+      <div>
+        <h2>Support priority</h2>
+        <p class="muted small">Students below the Ready line first, lowest score first. Use this list to plan sessions before the next drive.</p>
+      </div>
+      <div class="filters no-print">
+        <input type="search" id="q" placeholder="Search name or roll" aria-label="Search students">
+        <label class="check small"><input type="checkbox" id="only-not-ready"> Not yet Ready only</label>
+      </div>
+    </div>
+    <div class="table-wrap"><table class="data" id="register"></table></div>
+  </section>
+
+  <div class="dash-grid">
+    <section class="card">
+      <h2>By department</h2>
+      <div class="table-wrap"><table class="data" id="depts"></table></div>
+    </section>
+    <section class="card">
+      <h2>Scoring integrity</h2>
+      <p class="small" id="integrity-summary"></p>
+      <div class="table-wrap"><table class="data" id="integrity"></table></div>
+    </section>
+  </div>
+
+  <div class="dash-grid">
+    <section class="card">
+      <h2>Delivery</h2>
+      <dl class="profile-grid" id="process"></dl>
+    </section>
+    <section class="card">
+      <h2>Method and limits</h2>
+      <p class="small">Each student takes the Three-Minute Test on Day 1 and again at the end: a 60-second introduction, a 90-second story and a 30-second curveball, recorded after a room check. Answers are scored on the Offer Score: Structure, Proof, Clarity, Presence and Fit, each from 1 to 4, for a total of 5 to 20. Claude scores Structure, Proof, Clarity and Fit from the transcripts and measured delivery; a coach reviews every score, scores Presence from the video, and logs a reason for any change.</p>
+      <p class="small"><b>What this report does not claim.</b> These scores measure interview readiness on our rubric. They are not a prediction or guarantee of placement, which depends on the companies that visit, the seats they bring and eligibility rules.</p>
+    </section>
+  </div>
+  <p class="muted small" id="generated"></p>
+</main>
+<script type="module" src="/assets/dashboard.js"></script>
+</body>
+</html>
