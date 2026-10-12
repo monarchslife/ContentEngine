@@ -73,6 +73,31 @@ function answerBlock(p) {
     p.clip?.durationMs != null ? el("p", { class: "muted small" }, `Spoke for ${mmss(p.clip.durationMs)} of ${mmss(p.seconds * 1000)}`) : null);
 }
 
+function profileCard(a) {
+  const p = a.profile;
+  const d = p.data;
+  if (!p.completed && !Object.keys(d).length) return [el("p", { class: "eyebrow" }, "Student profile"), el("p", { class: "muted" }, "Not filled in yet.")];
+  const rows = [
+    ["Target role", [d.roleText, d.roleFamily && `(${d.roleFamily})`].filter(Boolean).join(" ")],
+    ["Degree", [d.degree, d.branch, d.gradYear && `graduating ${d.gradYear}`].filter(Boolean).join(", ")],
+    ["College", d.college],
+    ["Dream companies", d.companies],
+    ["Relocation", d.relocation],
+    ["Night shifts", d.nightShifts],
+    ["Languages", (d.languages || []).join(", ")],
+    ["Projects", d.projects],
+    ["Other", d.otherProof],
+  ].filter(([, v]) => v);
+  const resume = p.resume
+    ? el("a", { href: `/api/coach/student/${a.studentId}/resume`, target: "_blank", rel: "noopener" }, `Open resume (${p.resume.name})`)
+    : el("span", { class: "muted" }, d.noResume ? "No resume yet (student said so)." : "No resume uploaded.");
+  return [
+    el("p", { class: "eyebrow" }, p.completed ? "Student profile" : "Student profile (incomplete)"),
+    el("dl", { class: "profile-grid" }, ...rows.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
+    el("p", { class: "small resume-line" }, resume),
+  ];
+}
+
 function dimBlock(d) {
   const anchor = el("p", { class: "anchor muted small" }, "Pick 1 to 4.");
   const seg = el("div", { class: "segmented levels", role: "radiogroup", "aria-label": DIMENSION_LABEL[d] },
@@ -129,6 +154,7 @@ async function showAttempt(id) {
   current = await api(`/api/coach/attempt/${id}`);
   $("s-title").textContent = `${current.student.name} · ${current.label} test`;
   $("s-sub").textContent = [current.student.roll, current.student.dept, current.submittedAt && `submitted ${when(current.submittedAt)}`].filter(Boolean).join(" · ");
+  $("profile").replaceChildren(...profileCard(current));
   $("answers").replaceChildren(...current.parts.map(answerBlock));
   $("dims").replaceChildren(...DIMENSIONS.map(dimBlock));
   for (const d of DIMENSIONS) levels[d] = current.score?.levels[d] || null;

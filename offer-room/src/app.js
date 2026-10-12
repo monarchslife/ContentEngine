@@ -4,10 +4,15 @@ import crypto from "node:crypto";
 import { ROOT, verifyPin } from "./db.js";
 import { testState, startTest, saveClip, MAX_CLIP_BYTES } from "./assessment.js";
 import { queue, attemptDetail, saveScore, setOpenTest, streamClip } from "./scoring.js";
+import { profileState, saveProfile, saveResume, completeProfile, resumeFile } from "./onboarding.js";
+import { MAX_RESUME_BYTES } from "./profile.js";
 
 const PUBLIC = path.join(ROOT, "public");
 // Modules shared by server and browser.
-const SHARED = { "rubric.js": path.join(ROOT, "src", "rubric.js") };
+const SHARED = {
+  "rubric.js": path.join(ROOT, "src", "rubric.js"),
+  "profile.js": path.join(ROOT, "src", "profile.js"),
+};
 const SESSION_DAYS = 30;
 const COOKIE = "or_sid";
 const HOME = { student: "/room", coach: "/coach", management: "/dashboard" };
@@ -53,7 +58,7 @@ async function readRaw(req, limit) {
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > limit) throw httpError(413, "Recording too large");
+    if (size > limit) throw httpError(413, "File too large");
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
@@ -154,9 +159,10 @@ export function createApp(db) {
       if (req.method === "POST" && (p === "/api/login" || p === "/login")) return await login(req, res);
       if (req.method === "POST" && p === "/api/logout") return logout(req, res);
 
-      if (req.method === "GET" && (p === "/room" || p === "/test")) {
+      const STUDENT_PAGES = { "/room": "room.html", "/test": "test.html", "/onboarding": "onboarding.html" };
+      if (req.method === "GET" && STUDENT_PAGES[p]) {
         if (user?.role !== "student") return redirect(res, "/login");
-        return page(res, p === "/room" ? "room.html" : "test.html");
+        return page(res, STUDENT_PAGES[p]);
       }
       if (req.method === "GET" && (p === "/coach" || p === "/dashboard")) {
         if (!user || HOME[user.role] !== p) return redirect(res, "/login");
@@ -169,6 +175,16 @@ export function createApp(db) {
         if (p.startsWith("/api/student/")) {
           if (user.role !== "student") return send(res, 403, { error: "Students only" });
           if (req.method === "GET" && p === "/api/student/test") return send(res, 200, testState(db, user.id));
+          if (req.method === "GET" && p === "/api/student/profile") return send(res, 200, profileState(db, user.id));
+          if (req.method === "PUT" && p === "/api/student/profile") return send(res, 200, saveProfile(db, user.id, await readJson(req)));
+          if (req.method === "POST" && p === "/api/student/profile/complete") return send(res, 200, completeProfile(db, user.id));
+          if (req.method === "POST" && p === "/api/student/profile/resume") {
+            if (req.headers["x-offer-room"] !== "1") return send(res, 403, { error: "Forbidden" });
+            const body = await readRaw(req, MAX_RESUME_BYTES + 1);
+            let filename = "resume.pdf";
+            try { filename = decodeURIComponent(req.headers["x-filename"] || filename); } catch { /* keep default */ }
+            return send(res, 200, saveResume(db, user.id, { body, filename }));
+          }
           if (req.method === "POST" && p === "/api/student/test/start") {
             const { consent } = await readJson(req);
             if (consent !== true) return send(res, 400, { error: "Recording consent is needed to take the test" });
@@ -199,6 +215,16 @@ export function createApp(db) {
           const score = p.match(/^\/api\/coach\/attempt\/(\d+)\/score$/);
           if (req.method === "POST" && score) {
             return send(res, 200, saveScore(db, Number(score[1]), user.id, await readJson(req)));
+          }
+          const resume = p.match(/^\/api\/coach\/student\/(\d+)\/resume$/);
+          if (req.method === "GET" && resume) {
+            const r = resumeFile(db, Number(resume[1]));
+            return send(res, 200, fs.readFileSync(r.file), "application/pdf", {
+              "Content-Disposition": `inline; filename="${r.name.replace(/"/g, "")}"`,
+              "Cache-Control": "private, no-store",
+              // The browser's built-in PDF viewer needs a looser policy than our pages.
+              "Content-Security-Policy": "default-src 'self'; frame-ancestors 'self'",
+            });
           }
           const clip = p.match(/^\/api\/coach\/clip\/(\d+)$/);
           if (req.method === "GET" && clip) return streamClip(db, Number(clip[1]), req, res, SECURITY_HEADERS);

@@ -6,6 +6,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { THREE_MINUTE_TEST } from "./content.js";
 import { CLIP_DIR, getSettings } from "./db.js";
+import { isOnboarded } from "./onboarding.js";
 
 export const TEST_LABEL = { day1: "Day 1", final: "Final" };
 export const MAX_CLIP_BYTES = 30 * 1024 * 1024;
@@ -37,6 +38,7 @@ export function testState(db, studentId) {
   const attempts = db.prepare("SELECT * FROM attempts WHERE student_id = ? ORDER BY id").all(studentId);
   const current = openTest ? attempts.find((a) => a.test === openTest) : null;
   return {
+    onboarded: isOnboarded(db, studentId),
     openTest,
     openLabel: openTest ? TEST_LABEL[openTest] : null,
     current: current
@@ -55,6 +57,7 @@ export function testState(db, studentId) {
 export function startTest(db, studentId) {
   const test = getSettings(db).open_test;
   if (!test) throw Object.assign(new Error("No test is open right now"), { status: 409 });
+  if (!isOnboarded(db, studentId)) throw Object.assign(new Error("Finish your profile first"), { status: 409 });
   if (!attemptFor(db, studentId, test)) {
     const used = db.prepare("SELECT questions FROM attempts WHERE student_id = ?").all(studentId)
       .flatMap((a) => JSON.parse(a.questions).map((q) => q.ask));

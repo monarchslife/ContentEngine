@@ -197,3 +197,22 @@ legend { font-weight: 600; font-size: 15px; margin: 0 0 6px; padding: 0; }
 .saved { color: var(--good); font-weight: 600; margin: 8px 0 0; }
 .scorecard .actionbar { z-index: 2; }
 .stem-preview { margin: 8px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--gold-soft); font-size: 15px; }
+
+/* ---------- Onboarding ---------- */
+.hint { margin: 6px 0 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button {
+  min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); font: 600 15px/1 var(--sans); cursor: pointer;
+}
+.chips button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type="file"] { width: 100%; font: inherit; font-size: 15px; padding: 12px; border: 1px dashed var(--line); border-radius: 12px; background: var(--bg); }
+#resume-status { margin-top: 10px; }
+.profile-grid { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 15px; }
+.profile-grid dt { color: var(--muted); }
+.profile-grid dd { margin: 0; white-space: pre-line; }
+.resume-line { margin: 12px 0 0; }
+/* Next and Back side by side, so the form keeps more of the screen. */
+.actionbar.pair { display: flex; flex-direction: row-reverse; gap: 8px; }
+.actionbar.pair .btn.block { flex: 1 1 auto; width: auto; }
+.actionbar.pair #back { flex: 0 0 auto; padding: 0 20px; }

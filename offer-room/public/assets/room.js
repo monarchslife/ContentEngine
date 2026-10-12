@@ -17,7 +17,15 @@ function render(me, t) {
   document.getElementById("test-eyebrow").textContent = t.openLabel ? `${t.openLabel} · Three-Minute Test` : "Three-Minute Test";
 
   const cur = t.current;
-  if (!t.openTest) {
+  document.getElementById("profile-link").hidden = !t.onboarded;
+  if (!t.onboarded) {
+    document.getElementById("test-eyebrow").textContent = "Step 1";
+    title.textContent = "First, tell us about you.";
+    body.textContent = "Five minutes, then your test unlocks. It's how we make practice about the job you actually want.";
+    go.textContent = "Let's do it";
+    go.href = "/onboarding";
+    action.hidden = false;
+  } else if (!t.openTest) {
     title.textContent = "No test open right now.";
     body.textContent = "Chill. We'll tell you the moment the next one opens.";
   } else if (!cur) {

@@ -7,6 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_PATH = path.join(ROOT, "data", "offer-room.db");
 export const CLIP_DIR = process.env.OFFER_ROOM_CLIPS || path.join(ROOT, "data", "clips");
+export const RESUME_DIR = process.env.OFFER_ROOM_RESUMES || path.join(ROOT, "data", "resumes");
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -96,6 +97,17 @@ CREATE TABLE IF NOT EXISTS clips (
   file TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (attempt_id, part)
+);
+-- Onboarding: who the student is and the role they're aiming for.
+CREATE TABLE IF NOT EXISTS profiles (
+  student_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  data TEXT NOT NULL DEFAULT '{}',
+  resume_file TEXT,
+  resume_name TEXT,
+  resume_bytes INTEGER,
+  resume_at TEXT,
+  completed_at TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `;

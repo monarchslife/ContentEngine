@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>About you · The Offer Room</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<main class="wrap">
+  <div class="topbar">
+    <a class="brand" href="/room">Monarchs Life<b>The Offer Room</b></a>
+  </div>
+
+  <div id="head">
+    <p class="eyebrow">Before your first test</p>
+    <h1>Tell us about you.</h1>
+    <p class="lede">Five minutes. This is how we make your practice about the job YOU want, not some random job. Only Yogesh and Shoubhik see it.</p>
+    <div class="steps" id="steps" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  </div>
+
+  <form id="form" novalidate>
+    <!-- 1 -->
+    <section class="card" data-step="1" hidden>
+      <p class="eyebrow">1 of 4 · The basics</p>
+      <div class="field">
+        <label for="degree">Your degree</label>
+        <select id="degree" name="degree"></select>
+      </div>
+      <div class="field">
+        <label for="branch">Branch or specialisation</label>
+        <input id="branch" name="branch" type="text" placeholder="e.g. Computer Science, Finance, Mechanical">
+      </div>
+      <div class="field">
+        <label for="college">College <span class="muted">(optional)</span></label>
+        <input id="college" name="college" type="text" placeholder="e.g. a college in Mohali">
+      </div>
+      <div class="field">
+        <label for="gradYear">You graduate in</label>
+        <select id="gradYear" name="gradYear"></select>
+      </div>
+      <fieldset class="field">
+        <legend>Languages you're comfy talking in</legend>
+        <div class="chips" id="languages"></div>
+      </fieldset>
+    </section>
+
+    <!-- 2 -->
+    <section class="card" data-step="2" hidden>
+      <p class="eyebrow">2 of 4 · Where you're headed</p>
+      <div class="field">
+        <label for="roleFamily">What kind of role are you going for?</label>
+        <select id="roleFamily" name="roleFamily"></select>
+      </div>
+      <div class="field">
+        <label for="roleText">Say it in your own words</label>
+        <input id="roleText" name="roleText" type="text" placeholder="e.g. Software tester at an IT services company">
+        <p class="muted small hint">Not sure yet? Totally fine. Write the one you'd pick if the drive was tomorrow.</p>
+      </div>
+      <div class="field">
+        <label for="companies">Dream companies <span class="muted">(optional)</span></label>
+        <input id="companies" name="companies" type="text" placeholder="e.g. TCS, Infosys, Deloitte">
+      </div>
+      <fieldset class="field">
+        <legend>Okay with relocating to another city?</legend>
+        <div class="segmented" data-choice="relocation"></div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>Okay with night shifts?</legend>
+        <div class="segmented" data-choice="nightShifts"></div>
+      </fieldset>
+      <p class="muted small">Be honest. Both come up in almost every HR round, and there's no wrong answer here.</p>
+    </section>
+
+    <!-- 3 -->
+    <section class="card" data-step="3" hidden>
+      <p class="eyebrow">3 of 4 · Your proof stash</p>
+      <div class="field">
+        <label for="projects">Projects or internships</label>
+        <textarea id="projects" name="projects" rows="5" placeholder="One per line. What it was, and what YOU did.&#10;e.g. Attendance app for our department. I wrote the test cases."></textarea>
+        <p class="muted small hint">Small counts. A minor project, a two-week internship, a college assignment that went well. All of it.</p>
+      </div>
+      <div class="field">
+        <label for="otherProof">Anything else you've done <span class="muted">(optional)</span></label>
+        <textarea id="otherProof" name="otherProof" rows="4" placeholder="Fests, clubs, NSS or NCC, sports, a part-time job, tuitions you gave, the family shop..."></textarea>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="card" data-step="4" hidden>
+      <p class="eyebrow">4 of 4 · Your resume</p>
+      <div class="field">
+        <label for="resume">Upload your resume</label>
+        <input id="resume" type="file" accept="application/pdf,.pdf">
+        <p class="muted small hint">PDF only, under 5 MB. In Word or Google Docs: File, then Download, then PDF.</p>
+        <p class="pill good" id="resume-status" hidden></p>
+        <p class="error" id="resume-error" role="alert"></p>
+      </div>
+      <label class="check"><input type="checkbox" id="noResume"> No resume yet</label>
+      <p class="muted small hint" id="no-resume-note" hidden>No stress. Loads of people don't have one in final year. We'll sort it out together.</p>
+    </section>
+
+    <!-- done -->
+    <section data-step="5" hidden>
+      <div class="big-emoji">🙌</div>
+      <h1 id="done-title">You're in.</h1>
+      <p class="lede">Your room's ready. Next up: the Three-Minute Test.</p>
+    </section>
+
+    <p class="error" id="err" role="alert"></p>
+    <div class="actionbar pair">
+      <button class="btn gold block" id="next" type="submit">Next</button>
+      <button class="btn ghost block" id="back" type="button" hidden>Back</button>
+      <a class="btn gold block" id="to-room" href="/room" hidden>Go to my room</a>
+    </div>
+  </form>
+</main>
+<script type="module" src="/assets/onboarding.js"></script>
+</body>
+</html>

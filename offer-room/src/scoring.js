@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { CLIP_DIR, getSettings } from "./db.js";
 import { TEST_LABEL } from "./assessment.js";
+import { profileState } from "./onboarding.js";
 import { DIMENSIONS, STRENGTH_STEMS, FIX_STEMS, validLevels, lowest, total, lintNote } from "./rubric.js";
 
 const bad = (status, message) => Object.assign(new Error(message), { status });
@@ -63,6 +64,8 @@ export function attemptDetail(db, attemptId) {
       return { ...q, clip: c ? { id: c.id, mime: c.mime, durationMs: c.duration_ms } : null };
     }),
     score: scoreSummary(latestCoachScore(db, a.student_id, a.test)),
+    studentId: a.student_id,
+    profile: profileState(db, a.student_id),
   };
 }
 

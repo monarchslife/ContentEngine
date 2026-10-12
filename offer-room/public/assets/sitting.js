@@ -241,7 +241,13 @@ function finish() {
 // ---------------- start ----------------
 state = await api("/api/student/test");
 const cur = state.current;
-if (!state.openTest) {
+if (!state.onboarded) {
+  $("closed-title").textContent = "Quick thing first.";
+  $("closed-body").textContent = "Fill in your profile (five minutes), then the test unlocks.";
+  $("closed-go").href = "/onboarding";
+  $("closed-go").textContent = "Fill in my profile";
+  show("s-closed");
+} else if (!state.openTest) {
   $("closed-body").textContent = "No test is open right now. Chill. We'll tell you the moment the next one opens.";
   show("s-closed");
 } else if (cur && cur.status !== "in_progress") {

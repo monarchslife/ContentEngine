@@ -7,6 +7,7 @@ import http from "node:http";
 
 const clipDir = fs.mkdtempSync(path.join(os.tmpdir(), "offer-room-clips-"));
 process.env.OFFER_ROOM_CLIPS = clipDir;
+process.env.OFFER_ROOM_RESUMES = path.join(clipDir, "resumes");
 const { openDb, seed } = await import("../offer-room/src/db.js");
 const { createApp } = await import("../offer-room/src/app.js");
 const { drawQuestions } = await import("../offer-room/src/assessment.js");
@@ -85,6 +86,53 @@ test("pages and APIs are protected", async () => {
   assert.equal((await call(cookie, "/room")).headers.get("location"), "/login");
 });
 
+test("Badal must finish onboarding (profile + resume) before the test unlocks", async () => {
+  const { cookie } = await login("badal");
+  const json = (method, url, body) => call(cookie, url, {
+    method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  let state = await (await call(cookie, "/api/student/test")).json();
+  assert.equal(state.onboarded, false);
+  assert.equal((await json("POST", "/api/student/test/start", { consent: true })).status, 409);
+
+  let profile = await (await json("PUT", "/api/student/profile", {
+    degree: "B.Tech / B.E.", branch: "Computer Science", gradYear: "2027", languages: ["English", "Klingon"], hacker: "x",
+  })).json();
+  assert.deepEqual(profile.data.languages, ["English"], "unknown languages are dropped");
+  assert.equal(profile.data.hacker, undefined, "unknown fields are dropped");
+  assert.ok(profile.missing.includes("the kind of role you want"));
+  assert.equal((await json("POST", "/api/student/profile/complete", {})).status, 400);
+
+  profile = await (await json("PUT", "/api/student/profile", {
+    roleFamily: "Software testing / QA", roleText: "QA engineer at an IT services company",
+    relocation: "Yes", nightShifts: "Depends", projects: "Attendance app. I wrote 60 test cases.",
+  })).json();
+  assert.equal(profile.data.degree, "B.Tech / B.E.", "drafts merge across steps");
+  assert.deepEqual(profile.missing, ["your resume (or tick 'no resume yet')"]);
+
+  const upload = (body) => call(cookie, "/api/student/profile/resume", {
+    method: "POST", body, headers: { "Content-Type": "application/pdf", "X-Offer-Room": "1", "X-Filename": "Badal%20CV.pdf" },
+  });
+  assert.equal((await upload(Buffer.from("not a pdf at all"))).status, 415);
+  profile = await (await upload(Buffer.from("%PDF-1.4\n%fake resume\n"))).json();
+  assert.equal(profile.resume.name, "Badal CV.pdf");
+  assert.deepEqual(profile.missing, []);
+
+  profile = await (await json("POST", "/api/student/profile/complete", {})).json();
+  assert.equal(profile.completed, true);
+  state = await (await call(cookie, "/api/student/test")).json();
+  assert.equal(state.onboarded, true);
+
+  // Coach can open it; the student cannot use the coach route.
+  const { cookie: coach } = await login("yogesh");
+  const badalId = db.prepare("SELECT id FROM users WHERE login = 'badal'").get().id;
+  const pdf = await call(coach, `/api/coach/student/${badalId}/resume`);
+  assert.equal(pdf.status, 200);
+  assert.equal(pdf.headers.get("content-type"), "application/pdf");
+  assert.match(Buffer.from(await pdf.arrayBuffer()).toString(), /^%PDF-/);
+  assert.equal((await call(cookie, `/api/coach/student/${badalId}/resume`)).status, 403);
+});
+
 test("Badal takes the Day 1 test: consent, three parts in order, no retakes", async () => {
   const { cookie } = await login("badal");
   let state = await (await call(cookie, "/api/student/test")).json();
@@ -153,6 +201,7 @@ test("Yogesh scores Badal's Day 1 test", async () => {
   const detail = await (await call(cookie, `/api/coach/attempt/${day1.id}`)).json();
   assert.equal(detail.parts.length, 3);
   assert.ok(detail.parts.every((p) => p.clip && p.ask));
+  assert.equal(detail.profile.data.roleText, "QA engineer at an IT services company");
 
   // The recording streams, with byte ranges for Safari.
   const clipUrl = `/api/coach/clip/${detail.parts[0].clip.id}`;
