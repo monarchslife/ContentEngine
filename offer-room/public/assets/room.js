@@ -1,4 +1,4 @@
-import { api, logout, el } from "./common.js";
+import { api, logout, el, power } from "./common.js";
 
 document.getElementById("logout").addEventListener("click", logout);
 
@@ -9,7 +9,7 @@ const STATUS = {
 };
 
 function render(me, t) {
-  document.getElementById("hello").textContent = `Hey ${me.name}.`;
+  power(document.getElementById("hello"), "Hey ", `${me.name}.`);
   const title = document.getElementById("test-title");
   const body = document.getElementById("test-body");
   const action = document.getElementById("test-action");
@@ -41,15 +41,18 @@ function render(me, t) {
     go.textContent = "Continue the test";
     action.hidden = false;
   } else if (cur.status === "submitted") {
-    title.textContent = "Done and sent. 🎉";
+    title.textContent = "Done and sent.";
     body.textContent = "Yogesh is scoring your three answers. Your score lands right here when it's ready. Go eat something.";
   } else {
-    title.textContent = "Your score is in. 👀";
+    title.textContent = "Your score is in.";
     body.textContent = "No ranks, no comparisons. Just how your answers did and the one thing to work on next.";
     go.textContent = "See my Offer Score";
     go.href = "/score";
     action.hidden = false;
   }
+
+  // The big button already says it; don't repeat it as a link.
+  if (!action.hidden && go.getAttribute("href") === "/score") document.getElementById("score-link").hidden = true;
 
   if (t.history.length) {
     const rows = document.getElementById("history-rows");

@@ -1,4 +1,4 @@
-import { api, el } from "./common.js";
+import { api, el, power } from "./common.js";
 
 const $ = (id) => document.getElementById(id);
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -24,7 +24,7 @@ function render(view, test) {
   $("bar-line").style.left = pct(t.bar.line);
   $("bar-text").textContent = barText(t);
 
-  $("next-title").textContent = t.weakestLabel;
+  power($("next-title"), "", `${t.weakestLabel}.`);
   $("next-body").textContent = t.nextRep;
   $("strength").textContent = t.strength;
   $("fix").textContent = t.fix;

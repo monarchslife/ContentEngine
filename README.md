@@ -53,6 +53,8 @@ On first run it creates three logins (Badal, Yogesh, placement cell) with random
 
 Forgot a PIN or locked out? `npm run offer-room:pin -- badal` prints a fresh PIN (works for any login). Restart the app to clear a lockout.
 
+**Design.** Follows the Monarchs Life design system. Student pages, the test and the coach console use the screen style: paper ground, one maroon accent (rose on the night theme in dark mode), Poppins, one Instrument Serif italic power word per screen, the crown and MONARCHS LIFE wordmark, and a faint field of hairline symbols. The management dashboard uses the documents style: a charcoal cover band with a gold rule and the crown watermark, Fraunces titles, Source Serif text and IBM Plex Mono labels, on white. Fonts are self-hosted under `offer-room/public/assets/fonts/` (SIL Open Font License); the crown files under `offer-room/public/assets/brand/` are copied from the design system, never redrawn.
+
 **Built so far**
 
 - **Part 7: Management dashboard.** Log in as `placementcell` (coaches can open it too from their console). Professional and confidential to the placement cell: headline figures (students measured, average Offer Score Day 1 to Final, share at or above Ready, average movement, students needing support), movement by dimension, score distribution by band, a support-priority list (below Ready first, lowest score first, with the focus area and a recommended action; searchable, sortable, filterable), a department table, scoring integrity (how often coaches changed Claude's levels, per dimension), delivery numbers, and the method and its limits. Print it as a report, or download the register as CSV. It never shows profiles, transcripts, recordings, notes or override reasons.

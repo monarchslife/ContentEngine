@@ -131,7 +131,7 @@ function renderRegister() {
     { label: "Status" }, { label: "Focus area", key: "weakestLabel" }, { label: "Recommended action" }, { label: "Tests" },
   ], rows.length ? rows.map((r) => el("tr", {},
     el("td", { class: "num" }, num(r.priority)),
-    el("td", {}, el("b", {}, r.name), el("span", { class: "muted small block nowrap" }, r.roll || "")),
+    el("td", {}, el("b", {}, r.name), el("span", { class: "muted small stack nowrap" }, r.roll || "")),
     el("td", {}, r.dept),
     el("td", { class: "num" }, num(r.day1)),
     el("td", { class: "num" }, num(r.final)),
@@ -186,7 +186,14 @@ view = data;
 $("to-coach").hidden = me.role !== "coach";
 const s = view.settings;
 $("inst").textContent = s.institution || "Readiness Dashboard";
-$("meta").textContent = [s.program, s.batch].filter(Boolean).join(" · ");
+$("meta").textContent = "Interview readiness on the Offer Score, measured before and after the program.";
+const when = new Date(view.generatedAt);
+$("cover-meta").replaceChildren(...[
+  ["Program", s.program || "The Offer Room"],
+  ["Batch", s.batch || "–"],
+  ["Students", String(view.headline.students)],
+  ["Prepared", when.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })],
+].map(([k, v]) => el("div", {}, el("dt", {}, k), el("dd", {}, v))));
 kpis(view.headline);
 dimsChart(view.dimensions, view.headline.paired);
 bandsChart(view.bands, view.headline.measuredFinal > 0);
@@ -194,7 +201,7 @@ renderRegister();
 renderDepts(view.departments);
 renderIntegrity(view.integrity);
 renderProcess(view.process);
-$("generated").textContent = `Generated ${new Date(view.generatedAt).toLocaleString()}.`;
+$("generated").textContent = `Generated ${when.toLocaleString()}`;
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);

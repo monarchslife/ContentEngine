@@ -19,7 +19,10 @@ const SESSION_DAYS = 30;
 const COOKIE = "or_sid";
 const HOME = { student: "/room", coach: "/coach", management: "/dashboard" };
 
-const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml" };
+const TYPES = {
+  ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+  ".svg": "image/svg+xml", ".woff2": "font/woff2",
+};
 
 const SECURITY_HEADERS = {
   "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
@@ -102,11 +105,14 @@ export function createApp(db, { anthropic } = {}) {
     send(res, 200, fs.readFileSync(path.join(PUBLIC, file)), TYPES[".html"]);
   }
 
+  // Files under public/assets, one folder deep at most (fonts/, brand/).
   function asset(res, name) {
-    const file = path.join(PUBLIC, "assets", path.basename(name));
+    if (!/^(?:(?:fonts|brand)\/)?[\w.-]+$/.test(name)) return send(res, 404, { error: "Not found" });
+    const file = path.join(PUBLIC, "assets", name);
     const type = TYPES[path.extname(file)];
     if (!type || !fs.existsSync(file)) return send(res, 404, { error: "Not found" });
-    send(res, 200, fs.readFileSync(file), type, { "Cache-Control": "no-cache" });
+    const cache = type.startsWith("font/") ? "public, max-age=31536000, immutable" : "no-cache";
+    send(res, 200, fs.readFileSync(file), type, { "Cache-Control": cache });
   }
 
   // Accepts JSON from login.js, or a plain form post when JavaScript is off.

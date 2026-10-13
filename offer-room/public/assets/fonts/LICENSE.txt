@@ -1,0 +1,4 @@
+These font files are self-hosted copies of Poppins, Instrument Serif, Fraunces,
+Source Serif 4, IBM Plex Mono and IBM Plex Sans, downloaded from Google Fonts.
+All are licensed under the SIL Open Font License, Version 1.1:
+https://openfontlicense.org

@@ -1,4 +1,4 @@
-import { api, el } from "./common.js";
+import { api, el, power } from "./common.js";
 import { DEGREES, ROLE_FAMILIES, YES_NO_DEPENDS, LANGUAGES, MAX_RESUME_BYTES } from "/lib/profile.js";
 
 const $ = (id) => document.getElementById(id);
@@ -96,7 +96,7 @@ form.addEventListener("submit", async (e) => {
     if (step < LAST) go(step + 1);
     else {
       state = await api("/api/student/profile/complete", { method: "POST", json: {} });
-      $("done-title").textContent = `You're in, ${me.name}.`;
+      power($("done-title"), "You're ", "in", `, ${me.name}.`);
       go(LAST + 1);
     }
   } catch (err) {

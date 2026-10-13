@@ -30,3 +30,8 @@ export function el(tag, attrs = {}, ...kids) {
   node.append(...kids.filter((k) => k != null));
   return node;
 }
+
+// Sets a heading with its one power word (Instrument Serif italic, accent).
+export function power(node, before, word, after = "") {
+  node.replaceChildren(before, el("em", { class: "pw" }, word), after);
+}

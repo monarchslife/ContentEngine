@@ -4,86 +4,96 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Readiness Dashboard · The Offer Room</title>
+<title>Readiness Report · The Offer Room</title>
 <link rel="stylesheet" href="/assets/style.css">
 </head>
-<body class="console mgmt">
+<body class="doc">
 <main class="wrap wide">
-  <div class="topbar">
-    <span class="brand">Placement Readiness<b>The Offer Room</b></span>
-    <span class="top-actions">
-      <a class="link-btn" id="to-coach" href="/coach" hidden>Coach console</a>
-      <button class="link-btn" id="logout" type="button">Log out</button>
-    </span>
-  </div>
-
-  <header class="dash-head">
-    <div>
-      <h1 id="inst">Readiness Dashboard</h1>
-      <p class="lede" id="meta"></p>
+  <header class="doc-cover">
+    <div class="doc-topbar">
+      <span>Monarchs Life · The Offer Room</span>
+      <span class="top-actions">
+        <a id="to-coach" href="/coach" hidden>Coach console</a>
+        <button id="logout" type="button">Log out</button>
+      </span>
     </div>
-    <div class="dash-actions no-print">
-      <button class="btn ghost" id="print" type="button">Print report</button>
-      <a class="btn ghost" href="/api/management/register.csv">Download register (CSV)</a>
-    </div>
+    <div class="doc-rule"></div>
+    <p class="doc-kicker">Placement Readiness Report · Confidential</p>
+    <h1 id="inst">Readiness Report</h1>
+    <p class="doc-lede" id="meta"></p>
+    <dl class="doc-meta" id="cover-meta"></dl>
   </header>
+
+  <div class="doc-actions no-print">
+    <button class="btn" id="print" type="button">Print report</button>
+    <a class="btn" href="/api/management/register.csv">Download register (CSV)</a>
+  </div>
   <p class="confidential">Confidential to the placement cell. Individual scores are not shared with recruiters or published.</p>
 
   <section class="kpis" id="kpis" aria-label="Headline figures"></section>
 
   <div class="dash-grid">
     <section class="card">
-      <h2>Movement by dimension</h2>
-      <p class="muted small" id="dims-note"></p>
+      <p class="chapter"><span>01 · Movement</span><span>By dimension</span></p>
+      <h2>Where the batch moved</h2>
+      <p class="dek" id="dims-note"></p>
       <div class="legend" id="dims-legend"></div>
       <div id="dims-chart"></div>
     </section>
     <section class="card">
-      <h2>Score distribution</h2>
-      <p class="muted small">Students per Offer Score band. The Ready line is 15 of 20.</p>
+      <p class="chapter"><span>02 · Distribution</span><span>Score bands</span></p>
+      <h2>How the scores spread</h2>
+      <p class="dek">Students per Offer Score band. The Ready line is 15 of 20.</p>
       <div class="legend" id="bands-legend"></div>
       <div id="bands-chart"></div>
     </section>
   </div>
 
   <section class="card">
-    <div class="section-head">
-      <div>
-        <h2>Support priority</h2>
-        <p class="muted small">Students below the Ready line first, lowest score first. Use this list to plan sessions before the next drive.</p>
-      </div>
-      <div class="filters no-print">
-        <input type="search" id="q" placeholder="Search name or roll" aria-label="Search students">
-        <label class="check small"><input type="checkbox" id="only-not-ready"> Not yet Ready only</label>
-      </div>
+    <p class="chapter"><span>03 · Support priority</span><span>Before the next drive</span></p>
+    <h2>Who needs support first</h2>
+    <p class="dek">Students below the Ready line first, lowest score first, with the area to work on and the session that addresses it.</p>
+    <div class="filters no-print">
+      <input type="search" id="q" placeholder="Search name or roll" aria-label="Search students">
+      <label class="check small"><input type="checkbox" id="only-not-ready"> Not yet Ready only</label>
     </div>
     <div class="table-wrap"><table class="data" id="register"></table></div>
   </section>
 
   <div class="dash-grid">
     <section class="card">
+      <p class="chapter"><span>04 · Departments</span><span>Comparison</span></p>
       <h2>By department</h2>
+      <p class="dek">Average scores and movement per department, ranked by movement.</p>
       <div class="table-wrap"><table class="data" id="depts"></table></div>
     </section>
     <section class="card">
+      <p class="chapter"><span>05 · Integrity</span><span>How scores are checked</span></p>
       <h2>Scoring integrity</h2>
-      <p class="small" id="integrity-summary"></p>
+      <p class="dek" id="integrity-summary"></p>
       <div class="table-wrap"><table class="data" id="integrity"></table></div>
     </section>
   </div>
 
   <div class="dash-grid">
     <section class="card">
+      <p class="chapter"><span>06 · Delivery</span><span>The sittings</span></p>
       <h2>Delivery</h2>
+      <p class="dek">How the tests themselves ran.</p>
       <dl class="profile-grid" id="process"></dl>
     </section>
     <section class="card">
+      <p class="chapter"><span>07 · Method</span><span>And its limits</span></p>
       <h2>Method and limits</h2>
       <p class="small">Each student takes the Three-Minute Test on Day 1 and again at the end: a 60-second introduction, a 90-second story and a 30-second curveball, recorded after a room check. Answers are scored on the Offer Score: Structure, Proof, Clarity, Presence and Fit, each from 1 to 4, for a total of 5 to 20. Claude scores Structure, Proof, Clarity and Fit from the transcripts and measured delivery; a coach reviews every score, scores Presence from the video, and logs a reason for any change.</p>
       <p class="small"><b>What this report does not claim.</b> These scores measure interview readiness on our rubric. They are not a prediction or guarantee of placement, which depends on the companies that visit, the seats they bring and eligibility rules.</p>
     </section>
   </div>
-  <p class="muted small" id="generated"></p>
+
+  <footer class="doc-footer">
+    <span>Monarchs Life · The Offer Room · Confidential</span>
+    <span id="generated"></span>
+  </footer>
 </main>
 <script type="module" src="/assets/dashboard.js"></script>
 </body>

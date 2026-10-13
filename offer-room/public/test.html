@@ -10,13 +10,13 @@
 <body>
 <main class="wrap">
   <div class="topbar">
-    <a class="brand" href="/room">Monarchs Life<b>The Offer Room</b></a>
+    <a class="brand" href="/room"><span class="brand-text"><span class="wm">Monarchs Life</span><span class="product">The Offer Room</span></span></a>
   </div>
 
   <!-- 1. The deal -->
   <section id="s-intro" hidden>
     <p class="eyebrow" id="intro-eyebrow">Three-Minute Test</p>
-    <h1 id="intro-title">Okay, here's the deal.</h1>
+    <h1 id="intro-title">Okay, here's the <em class="pw">deal.</em></h1>
     <div class="card">
       <ul class="list">
         <li><b>3 questions, one at a time.</b> 60 seconds, then 90, then 30.</li>
@@ -40,14 +40,14 @@
       <label class="check"><input type="checkbox" id="consent"> Got it. Record me.</label>
     </div>
     <div class="actionbar">
-      <button class="btn gold block" id="to-check" type="button" disabled>Check my room</button>
+      <button class="btn primary block" id="to-check" type="button" disabled>Check my room</button>
     </div>
   </section>
 
   <!-- 2. Camera, mic and the 15-second room check -->
   <section id="s-check" hidden>
     <p class="eyebrow">Room check · 15 seconds</p>
-    <h1 id="rc-title">Can you see yourself?</h1>
+    <h1 id="rc-title">Can you see <em class="pw">yourself?</em></h1>
     <p class="lede" id="rc-lede">Before every test we check your room for 15 seconds: 5 seconds of quiet, then you read one line out loud.</p>
     <div class="card" id="rc-results" hidden><ul class="checks" id="rc-list"></ul></div>
     <div class="stage" id="check-stage">
@@ -63,8 +63,8 @@
     </div>
     <div class="note warn" id="check-error" hidden></div>
     <div class="actionbar">
-      <button class="btn gold block" id="rc-run" type="button" disabled>Start the room check</button>
-      <button class="btn gold block" id="to-question" type="button" hidden>Start the test</button>
+      <button class="btn primary block" id="rc-run" type="button" disabled>Start the room check</button>
+      <button class="btn primary block" id="to-question" type="button" hidden>Start the test</button>
       <button class="btn ghost block" id="voice-only" type="button" hidden>Do it with voice only</button>
       <button class="btn ghost block" id="rc-skip" type="button" hidden>Continue anyway</button>
     </div>
@@ -93,29 +93,29 @@
 
   <!-- 4. Saving / between parts -->
   <section id="s-saved" hidden>
-    <div class="big-emoji" id="saved-emoji">⏳</div>
+    <div class="mark quiet" id="saved-emoji" aria-hidden="true">↑</div>
     <h1 id="saved-title">Saving your answer…</h1>
     <p class="lede" id="saved-body">Don't close this page for a sec.</p>
     <div class="note warn" id="save-error" hidden></div>
     <div class="actionbar">
-      <button class="btn gold block" id="next" type="button" hidden>Next question</button>
+      <button class="btn primary block" id="next" type="button" hidden>Next question</button>
       <button class="btn ghost block" id="retry" type="button" hidden>Try sending it again</button>
     </div>
   </section>
 
   <!-- 5. Done -->
   <section id="s-done" hidden>
-    <div class="big-emoji">🎉</div>
-    <h1>That's it. You did the scariest part: starting.</h1>
+    <div class="mark" aria-hidden="true">✓</div>
+    <h1>That's it. You did the scariest part: <em class="pw">starting.</em></h1>
     <p class="lede">Yogesh is scoring your three answers now. Your score shows up in your room when it's ready.</p>
-    <div class="actionbar"><a class="btn gold block" href="/room">Back to my room</a></div>
+    <div class="actionbar"><a class="btn primary block" href="/room">Back to my room</a></div>
   </section>
 
   <!-- Nothing to do -->
   <section id="s-closed" hidden>
     <h1 id="closed-title">Nothing to record right now.</h1>
     <p class="lede" id="closed-body"></p>
-    <div class="actionbar"><a class="btn gold block" id="closed-go" href="/room">Back to my room</a></div>
+    <div class="actionbar"><a class="btn primary block" id="closed-go" href="/room">Back to my room</a></div>
   </section>
 </main>
 <script type="module" src="/assets/sitting.js"></script>

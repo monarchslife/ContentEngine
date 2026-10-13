@@ -116,6 +116,22 @@ test("five wrong PINs lock the login", async () => {
   assert.equal(locked.res.status, 429, "even the right PIN is refused while locked");
 });
 
+test("brand fonts and crowns are served; nothing outside the assets folder is", async () => {
+  const font = await fetch(`${base}/assets/fonts/Poppins-600.woff2`);
+  assert.equal(font.status, 200);
+  assert.equal(font.headers.get("content-type"), "font/woff2");
+  const crown = await fetch(`${base}/assets/brand/crown.svg`);
+  assert.equal(crown.headers.get("content-type"), "image/svg+xml");
+  // Raw paths, sent as written (fetch would tidy the dots away first).
+  const raw = (p) => new Promise((resolve) => {
+    http.get({ host: "127.0.0.1", port: server.address().port, path: p }, (res) => { res.resume(); resolve(res.statusCode); });
+  });
+  for (const bad of ["../src/db.js", "fonts/../../server.js", "brand/../../../package.json", "..", "fonts/x/y.css", "%2e%2e/src/app.js", "fonts/..%2f..%2fserver.js"]) {
+    const status = await raw(`/assets/${bad}`);
+    assert.ok(status === 404 || status === 302, `${bad} answered ${status}`); // never a file
+  }
+});
+
 test("pages and APIs are protected", async () => {
   assert.equal((await call("", "/room")).status, 302);
   assert.equal((await call("", "/api/student/test")).status, 401);

@@ -10,12 +10,12 @@
 <body>
 <main class="wrap">
   <div class="topbar">
-    <a class="brand" href="/room">Monarchs Life<b>The Offer Room</b></a>
+    <a class="brand" href="/room"><span class="brand-text"><span class="wm">Monarchs Life</span><span class="product">The Offer Room</span></span></a>
   </div>
 
   <div id="head">
     <p class="eyebrow">Before your first test</p>
-    <h1>Tell us about you.</h1>
+    <h1>Tell us about <em class="pw">you.</em></h1>
     <p class="lede">Five minutes. This is how we make your practice about the job YOU want, not some random job. Only Yogesh and Shoubhik see it.</p>
     <div class="steps" id="steps" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
   </div>
@@ -103,16 +103,16 @@
 
     <!-- done -->
     <section data-step="5" hidden>
-      <div class="big-emoji">🙌</div>
+      <div class="mark" aria-hidden="true">✓</div>
       <h1 id="done-title">You're in.</h1>
       <p class="lede">Your room's ready. Next up: the Three-Minute Test.</p>
     </section>
 
     <p class="error" id="err" role="alert"></p>
     <div class="actionbar pair">
-      <button class="btn gold block" id="next" type="submit">Next</button>
+      <button class="btn primary block" id="next" type="submit">Next</button>
       <button class="btn ghost block" id="back" type="button" hidden>Back</button>
-      <a class="btn gold block" id="to-room" href="/room" hidden>Go to my room</a>
+      <a class="btn primary block" id="to-room" href="/room" hidden>Go to my room</a>
     </div>
   </form>
 </main>

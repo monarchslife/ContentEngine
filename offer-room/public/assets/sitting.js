@@ -1,4 +1,4 @@
-import { api, el } from "./common.js";
+import { api, el, power } from "./common.js";
 import { QUIET_SECONDS, SPEAK_SECONDS, READ_LINE, evaluate, heardRatio } from "/lib/roomcheck.js";
 
 const $ = (id) => document.getElementById(id);
@@ -254,7 +254,7 @@ async function submitRoomCheck(metrics, skip) {
   $("rc-run").disabled = false;
   if (result.canStart) {
     sitting = result.sitting;
-    $("rc-title").textContent = result.passed ? "Your room's good to go. 🎉" : "Okay, going ahead.";
+    if (result.passed) power($("rc-title"), "Your room's good to ", "go."); else $("rc-title").textContent = "Okay, going ahead.";
     $("rc-lede").textContent = result.passed
       ? "Everything we need is working. Take a breath. The first question appears with a 5-second countdown."
       : "Yogesh will see the room check didn't pass, so no stress about the setup.";
@@ -392,7 +392,7 @@ function record(part, limit) {
   const words = transcriber();
   words.start();
   $("tx-status").hidden = false;
-  $("tx-status").textContent = SR ? "📝 Writing down your answer as you speak." : "This browser can't write down your answer. Your recording still counts.";
+  $("tx-status").textContent = SR ? "Writing down your answer as you speak." : "This browser can't write down your answer. Your recording still counts.";
 
   recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   recorder.onstop = async () => {
@@ -440,7 +440,8 @@ function record(part, limit) {
 // ---------------- 4. upload ----------------
 async function upload() {
   const { part, blob, durationMs } = pending;
-  $("saved-emoji").textContent = "⏳";
+  $("saved-emoji").textContent = "↑";
+  $("saved-emoji").className = "mark quiet";
   $("saved-title").textContent = "Saving your answer…";
   $("saved-body").textContent = "Don't close this page for a sec.";
   $("save-error").hidden = true;
@@ -468,7 +469,7 @@ async function upload() {
     } else if (e.status === 409) {
       state = await api("/api/student/test"); // already saved, e.g. a double send
     } else {
-      $("saved-emoji").textContent = "📶";
+      $("saved-emoji").textContent = "↑";
       $("saved-title").textContent = "Upload hiccup.";
       $("saved-body").textContent = "Your answer is safe on this phone. Check your internet and send it again.";
       $("save-error").textContent = e.message;
@@ -480,7 +481,8 @@ async function upload() {
   pending = null;
   busy = false;
   if (state.current?.status !== "in_progress") return finish();
-  $("saved-emoji").textContent = "✅";
+  $("saved-emoji").textContent = "✓";
+  $("saved-emoji").className = "mark";
   $("saved-title").textContent = AFTER_PART[part].title;
   $("saved-body").textContent = AFTER_PART[part].body;
   $("next").hidden = false;
